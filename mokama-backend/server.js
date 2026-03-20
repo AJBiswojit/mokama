@@ -6,7 +6,6 @@ const REQUIRED_ENV = [
   'JWT_SECRET',
   'EMAIL_USER',
   'EMAIL_PASS',
-  'ADMIN_PASSWORD',
 ];
 const missing = REQUIRED_ENV.filter(k => !process.env[k]);
 if (missing.length) {
@@ -22,8 +21,6 @@ const rateLimit      = require('express-rate-limit');
 const helmet         = require('helmet');         // Fix 1a
 const mongoSanitize  = require('express-mongo-sanitize'); // Fix 1b
 const xss            = require('xss-clean');      // Fix 1c
-const compression    = require('compression');
-const morgan         = require('morgan');
 
 // Route imports
 const authRoutes         = require('./routes/auth');
@@ -39,6 +36,9 @@ const dropStaleIndexes = require('./utils/fixIndexes');
 
 const app = express();
 
+// Trust Render/proxy headers — required for rate limiting to work correctly on Render
+app.set('trust proxy', 1);
+
 // ─── Fix 1: Security middleware (order matters) ───
 
 // 1a. Helmet — sets secure HTTP headers (XSS protection, no sniff, HSTS, etc.)
@@ -49,7 +49,7 @@ app.use(helmet({
 
 // 1b. CORS — after helmet
 app.use(cors({
-  origin: process.env.FRONTEND_URL,
+  origin: process.env.FRONTEND_URL || 'http://localhost:5173',
   credentials: true,
 }));
 
@@ -61,12 +61,6 @@ app.use(mongoSanitize());
 
 // 1d. XSS sanitizer — strips HTML/script tags from all string inputs
 app.use(xss());
-
-// 1e. Compression
-app.use(compression());
-
-// 1f. Morgan — HTTP request logger
-app.use(morgan(process.env.NODE_ENV === 'production' ? 'combined' : 'dev'));
 
 // ─── Rate limiting ───
 const globalLimiter = rateLimit({
@@ -100,7 +94,7 @@ app.use('/api/notifications', notificationRoutes);
 
 // ─── Health check ───
 app.get('/api/health', (req, res) => {
-  res.json({ success: true, message: 'MoKama API is running', version: '1.0.1', timestamp: new Date() });
+  res.json({ success: true, message: 'MoKama API is running', timestamp: new Date() });
 });
 
 // ─── 404 ───

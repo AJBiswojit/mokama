@@ -1,70 +1,48 @@
-const express = require('express');
-const router  = express.Router();
-const {
-  workerRegister, workerVerifyOTP, workerLogin, workerLoginVerify,
-  employerRegister, employerVerifyOTP, employerLogin, employerLoginVerify,
-  adminLogin, getCategories, getMe, refreshToken,
-} = require('../controllers/authController');
-const { protect } = require('../middlewares/auth');
-const rateLimit = require('express-rate-limit');
+const { verifyToken } = require('../utils/jwt');
+const Worker = require('../models/Worker');
+const Employer = require('../models/Employer');
+const Admin = require('../models/Admin');
 
-// OTP rate limit — 5 per 15 minutes
-const otpLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  max: 5,
-  message: { success: false, message: 'Too many OTP requests. Please wait 15 minutes.' }
-});
-
-// ── Worker ──
-router.post('/worker/register',      otpLimiter, workerRegister);
-router.post('/worker/verify-otp',    workerVerifyOTP);
-router.post('/worker/login',         otpLimiter, workerLogin);
-router.post('/worker/login/verify',  workerLoginVerify);
-
-// ── Employer ──
-router.post('/employer/register',     otpLimiter, employerRegister);
-router.post('/employer/verify-otp',   employerVerifyOTP);
-router.post('/employer/login',        otpLimiter, employerLogin);
-router.post('/employer/login/verify', employerLoginVerify);
-
-// ── Admin ──
-router.post('/admin/login', adminLogin);
-
-// ── Temporary admin reset — DELETE THIS ROUTE AFTER USE ──
-router.post('/admin/reset-once', async (req, res) => {
+const protect = async (req, res, next) => {
   try {
-    const { resetKey } = req.body;
-
-    // Must match ADMIN_RESET_KEY env var — prevents unauthorized access
-    if (!process.env.ADMIN_RESET_KEY || resetKey !== process.env.ADMIN_RESET_KEY) {
-      return res.status(403).json({ success: false, message: 'Invalid reset key' });
+    const authHeader = req.headers.authorization;
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return res.status(401).json({ success: false, message: 'No token provided' });
     }
 
-    const Admin    = require('../models/Admin');
-    const email    = process.env.ADMIN_EMAIL    || 'admin@mokama.in';
-    const password = process.env.ADMIN_PASSWORD || 'admin123';
+    const token = authHeader.split(' ')[1];
+    const decoded = verifyToken(token);
 
-    await Admin.deleteOne({ email });
+    let user;
+    if (decoded.role === 'worker') {
+      user = await Worker.findById(decoded.id).select('-emailOtp -emailOtpExpiry');
+    } else if (decoded.role === 'employer') {
+      user = await Employer.findById(decoded.id).select('-emailOtp -emailOtpExpiry');
+    } else if (decoded.role === 'admin') {
+      user = await Admin.findById(decoded.id).select('-password');
+    }
 
-    await Admin.create({
-      name:     'MoKama Admin',
-      email,
-      password,
-      isActive: true,
-    });
+    if (!user) {
+      return res.status(401).json({ success: false, message: 'User not found' });
+    }
 
-    res.json({
-      success: true,
-      message: `Admin reset successful. Email: ${email}. Now remove ADMIN_RESET_KEY from env.`,
-    });
+    if (user.isActive === false) {
+      return res.status(403).json({ success: false, message: 'Account is disabled' });
+    }
+
+    req.user = user;
+    req.userRole = decoded.role;
+    next();
   } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
+    return res.status(401).json({ success: false, message: 'Invalid or expired token' });
   }
-});
+};
 
-// ── Shared ──
-router.get('/categories', getCategories);
-router.get('/me', protect, getMe);
-router.post('/refresh', refreshToken);   // Refresh access token
+const requireRole = (...roles) => (req, res, next) => {
+  if (!roles.includes(req.userRole)) {
+    return res.status(403).json({ success: false, message: 'Access denied' });
+  }
+  next();
+};
 
-module.exports = router;
+module.exports = { protect, requireRole };
