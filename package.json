@@ -1,0 +1,13 @@
+{
+  "name": "mokama",
+  "version": "1.0.0",
+  "description": "MoKama – Digital Employment Platform (Monorepo)",
+  "private": true,
+  "scripts": {
+    "install:all": "cd mokama-backend && npm install && cd ../mokama-frontend && npm install",
+    "dev:backend": "cd mokama-backend && npm run dev",
+    "dev:frontend": "cd mokama-frontend && npm run dev",
+    "start:backend": "cd mokama-backend && npm start",
+    "build:frontend": "cd mokama-frontend && npm run build"
+  }
+}

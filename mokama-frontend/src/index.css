@@ -1,0 +1,74 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    font-family: 'Sora', sans-serif;
+    background: #0a0a0a;
+    color: #f0f0f0;
+    -webkit-font-smoothing: antialiased;
+  }
+  ::selection { background: #f97316; color: #0a0a0a; }
+}
+
+@layer components {
+  .btn-primary {
+    @apply inline-flex items-center gap-2 px-5 py-2.5
+           bg-brand-500 text-white font-semibold rounded-xl
+           hover:bg-brand-400 active:scale-95
+           shadow-glow-sm hover:shadow-glow
+           transition-all duration-150
+           disabled:opacity-40 disabled:cursor-not-allowed text-sm;
+  }
+  .btn-secondary {
+    @apply inline-flex items-center gap-2 px-5 py-2.5
+           bg-dark-card text-txt-primary font-semibold rounded-xl
+           border border-dark-border
+           hover:border-brand-500/50 hover:bg-dark-hover
+           active:scale-95 transition-all duration-150 text-sm;
+  }
+  .btn-ghost {
+    @apply inline-flex items-center gap-2 px-4 py-2
+           text-txt-secondary font-medium rounded-xl
+           hover:bg-dark-hover hover:text-txt-primary
+           active:scale-95 transition-all duration-150 text-sm;
+  }
+  .btn-danger {
+    @apply inline-flex items-center gap-2 px-4 py-2
+           bg-red-500/10 text-red-400 font-medium rounded-xl
+           border border-red-500/20
+           hover:bg-red-500/20 active:scale-95 transition-all duration-150 text-sm;
+  }
+  .card {
+    @apply bg-dark-card rounded-2xl border border-dark-border shadow-card p-6;
+  }
+  .input {
+    @apply w-full px-4 py-2.5
+           bg-dark-surface border border-dark-border rounded-xl
+           text-sm text-txt-primary placeholder:text-txt-muted
+           focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-500/60
+           transition-all duration-150;
+  }
+  .label {
+    @apply block text-sm font-medium text-txt-secondary mb-1.5;
+  }
+  .badge {
+    @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold;
+  }
+  .sidebar-link {
+    @apply flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium
+           text-txt-secondary hover:bg-dark-hover hover:text-txt-primary
+           transition-all duration-150;
+  }
+  .sidebar-link.active {
+    @apply bg-brand-500/10 text-brand-400 border border-brand-500/20;
+  }
+}
+
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: #0a0a0a; }
+::-webkit-scrollbar-thumb { background: #2a2a2a; border-radius: 99px; }
+::-webkit-scrollbar-thumb:hover { background: #f97316; }
