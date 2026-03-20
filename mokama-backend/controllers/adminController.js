@@ -304,14 +304,40 @@ exports.getAdminLog = async (req, res) => {
 // Seed admin account
 exports.seedAdmin = async () => {
   try {
-    const email = process.env.ADMIN_EMAIL;
+    const email    = process.env.ADMIN_EMAIL    || 'admin@mokama.in';
+    const password = process.env.ADMIN_PASSWORD || 'admin123';
+
     const existing = await Admin.findOne({ email });
+
     if (!existing) {
-      await Admin.create({ name: 'MoKama Admin', email, password: process.env.ADMIN_PASSWORD, isActive: true });
-      console.log('✅ Admin account created');
-    } else if (existing.isActive === undefined || existing.isActive === null) {
-      await Admin.updateOne({ email }, { $set: { isActive: true } });
-      console.log('✅ Admin isActive patched');
+      // Create fresh admin — bcrypt applied via pre-save hook
+      await Admin.create({ name: 'MoKama Admin', email, password, isActive: true });
+      console.log('✅ Admin account created:', email);
+    } else {
+      // Patch: ensure isActive is set and password is up to date
+      let changed = false;
+
+      if (existing.isActive !== true) {
+        existing.isActive = true;
+        changed = true;
+      }
+
+      // Always re-verify password is correctly hashed
+      // If plain-text was stored before, this fixes it
+      const isMatch = await existing.comparePassword(password);
+      if (!isMatch) {
+        // Password in DB doesn't match .env — update it
+        existing.password = password; // pre-save hook will bcrypt it
+        changed = true;
+        console.log('🔑 Admin password updated from .env');
+      }
+
+      if (changed) {
+        await existing.save();
+        console.log('✅ Admin account patched');
+      } else {
+        console.log('✅ Admin account OK');
+      }
     }
   } catch (err) {
     console.error('Admin seed error:', err.message);
