@@ -15,9 +15,9 @@ const protect = async (req, res, next) => {
 
     let user;
     if (decoded.role === 'worker') {
-      user = await Worker.findById(decoded.id).select('-otp -otpExpiry');
+      user = await Worker.findById(decoded.id).select('-emailOtp -emailOtpExpiry');
     } else if (decoded.role === 'employer') {
-      user = await Employer.findById(decoded.id).select('-otp -otpExpiry');
+      user = await Employer.findById(decoded.id).select('-emailOtp -emailOtpExpiry');
     } else if (decoded.role === 'admin') {
       user = await Admin.findById(decoded.id).select('-password');
     }

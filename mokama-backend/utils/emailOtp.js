@@ -14,12 +14,7 @@ const generateEmailOTP = () => {
   return Math.floor(100000 + Math.random() * 900000).toString();
 };
 
-// ── OTP expiry (5 minutes) ──
-const getEmailOTPExpiry = () => {
-  return new Date(Date.now() + 5 * 60 * 1000);
-};
-
-// ── Send OTP email ──
+// ── Send OTP email — used during registration and login ──
 const sendEmailOTP = async (email, otp, name = 'User') => {
   if (process.env.NODE_ENV !== 'production') {
     console.log(`📧 [DEV] Email OTP for ${email}: ${otp}`);
@@ -41,9 +36,7 @@ const sendEmailOTP = async (email, otp, name = 'User') => {
             </p>
           </div>
           <p style="color: #a3a3a3; font-size: 15px;">Hi ${name},</p>
-          <p style="color: #a3a3a3; font-size: 15px;">
-            Your email verification OTP is:
-          </p>
+          <p style="color: #a3a3a3; font-size: 15px;">Your email verification OTP is:</p>
           <div style="background: #1a1a1a; border: 1px solid #2a2a2a; border-radius: 12px;
                       text-align: center; padding: 24px; margin: 24px 0;">
             <span style="font-size: 36px; font-weight: bold; color: #f97316;
@@ -69,26 +62,30 @@ const sendEmailOTP = async (email, otp, name = 'User') => {
   }
 };
 
-// ── Check OTP rate limit (max 3 per hour) ──
-const checkOtpRateLimit = (user) => {
-  const now = new Date();
-  // Reset counter if the reset window has passed
-  if (!user.emailOtpRequestReset || user.emailOtpRequestReset < now) {
-    return { allowed: true, reset: true };
+// ── Generic email sender — used for approval, rejection, job notifications ──
+const sendEmail = async (to, subject, html) => {
+  if (process.env.NODE_ENV !== 'production') {
+    console.log(`📧 [DEV] Email to ${to}: ${subject}`);
+    return { success: true };
   }
-  if (user.emailOtpRequestCount >= 3) {
-    const minsLeft = Math.ceil((user.emailOtpRequestReset - now) / 60000);
-    return {
-      allowed: false,
-      message: `Too many OTP requests. Try again in ${minsLeft} minute(s).`
-    };
+  try {
+    await transporter.sendMail({
+      from: process.env.EMAIL_FROM || 'MoKama <noreply@mokama.in>',
+      to,
+      subject,
+      html,
+    });
+    return { success: true };
+  } catch (err) {
+    // Non-fatal — log but never crash the request
+    console.error(`Email send failed to ${to}:`, err.message);
+    return { success: false, message: err.message };
   }
-  return { allowed: true, reset: false };
 };
 
+// Single clean export — no duplicates
 module.exports = {
   generateEmailOTP,
-  getEmailOTPExpiry,
   sendEmailOTP,
-  checkOtpRateLimit,
+  sendEmail,
 };

@@ -304,10 +304,10 @@ exports.getAdminLog = async (req, res) => {
 // Seed admin account
 exports.seedAdmin = async () => {
   try {
-    const email = process.env.ADMIN_EMAIL || 'admin@mokama.in';
+    const email = process.env.ADMIN_EMAIL;
     const existing = await Admin.findOne({ email });
     if (!existing) {
-      await Admin.create({ name: 'MoKama Admin', email, password: process.env.ADMIN_PASSWORD || 'admin123', isActive: true });
+      await Admin.create({ name: 'MoKama Admin', email, password: process.env.ADMIN_PASSWORD, isActive: true });
       console.log('✅ Admin account created');
     } else if (existing.isActive === undefined || existing.isActive === null) {
       await Admin.updateOne({ email }, { $set: { isActive: true } });

@@ -6,6 +6,7 @@ const REQUIRED_ENV = [
   'JWT_SECRET',
   'EMAIL_USER',
   'EMAIL_PASS',
+  'ADMIN_PASSWORD',
 ];
 const missing = REQUIRED_ENV.filter(k => !process.env[k]);
 if (missing.length) {
@@ -21,6 +22,8 @@ const rateLimit      = require('express-rate-limit');
 const helmet         = require('helmet');         // Fix 1a
 const mongoSanitize  = require('express-mongo-sanitize'); // Fix 1b
 const xss            = require('xss-clean');      // Fix 1c
+const compression    = require('compression');
+const morgan         = require('morgan');
 
 // Route imports
 const authRoutes         = require('./routes/auth');
@@ -58,6 +61,12 @@ app.use(mongoSanitize());
 
 // 1d. XSS sanitizer — strips HTML/script tags from all string inputs
 app.use(xss());
+
+// 1e. Compression
+app.use(compression());
+
+// 1f. Morgan — HTTP request logger
+app.use(morgan(process.env.NODE_ENV === 'production' ? 'combined' : 'dev'));
 
 // ─── Rate limiting ───
 const globalLimiter = rateLimit({

@@ -3,7 +3,7 @@ const Employer = require('../models/Employer');
 const Admin   = require('../models/Admin');
 const { WorkerType, EmployerCategory } = require('../models/Category');
 const { generateToken, generateTokens } = require('../utils/jwt');
-const { generateEmailOTP, getEmailOTPExpiry, sendEmailOTP } = require('../utils/emailOtp');
+const { generateEmailOTP, sendEmailOTP } = require('../utils/emailOtp');
 const otpCache = require('../utils/otpCache');
 
 const INDIAN_PHONE = /^[6-9]\d{9}$/;
