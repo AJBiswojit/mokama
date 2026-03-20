@@ -11,6 +11,7 @@ import {
 } from 'lucide-react'
 import { formatDate, timeAgo } from '../../utils/honour'
 import StatusBanner from '../../components/StatusBanner'
+import ProfileCompleteness from '../../components/ProfileCompleteness'
 
 const NAV = [
   { href: '/worker/dashboard', label: 'Dashboard', icon: <LayoutDashboard size={16} /> },
@@ -69,6 +70,9 @@ function Overview() {
 
       {/* ── Account Status Banner ── */}
       <StatusBanner />
+
+      {/* ── Profile Completeness ── */}
+      <ProfileCompleteness user={user} role="worker" />
 
       {/* ── Availability Toggle — prominent at top of dashboard ── */}
       <AvailabilityToggle hasActiveJob={!!stats?.activeJob} />

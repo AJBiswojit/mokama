@@ -6,7 +6,7 @@ import toast from 'react-hot-toast'
 import {
   LayoutDashboard, Users, Briefcase, AlertCircle, Shield,
   TrendingDown, TrendingUp, RefreshCw, Search, XCircle, CheckCircle,
-  Loader, Clock, UserCheck, Ban, ChevronRight, Mail, Trash2, RotateCcw
+  Loader, Clock, UserCheck, Ban, ChevronRight, Mail, Trash2, RotateCcw, Activity
 } from 'lucide-react'
 import { formatDate } from '../../utils/honour'
 
@@ -17,6 +17,7 @@ const NAV = [
   { href: '/admin/dashboard/employers', label: 'Employers',     icon: <Briefcase size={16} /> },
   { href: '/admin/dashboard/jobs',      label: 'Jobs',          icon: <AlertCircle size={16} /> },
   { href: '/admin/dashboard/deleted',   label: 'Deleted Users', icon: <Trash2 size={16} /> },
+  { href: '/admin/dashboard/activity',  label: 'Activity Log',  icon: <Shield size={16} /> },
 ]
 
 /* ─── Helpers ─── */
@@ -710,6 +711,110 @@ function JobsPanel() {
   )
 }
 
+
+// ─────────────── Activity Log Panel ───────────────
+function ActivityLogPanel() {
+  const [logs, setLogs]     = useState([])
+  const [loading, setLoading] = useState(true)
+  const [page, setPage]     = useState(1)
+  const [total, setTotal]   = useState(0)
+  const LIMIT = 20
+
+  const load = useCallback(async (p = 1) => {
+    setLoading(true)
+    try {
+      const res = await api.get(`/admin/activity-log?limit=${LIMIT}&page=${p}`)
+      setLogs(res.data.logs || [])
+      setTotal(res.data.total || 0)
+    } catch { toast.error('Failed to load activity log') }
+    finally { setLoading(false) }
+  }, [])
+
+  useEffect(() => { load(page) }, [page])
+
+  const ACTION_STYLE = {
+    APPROVED_USER:    { bg: 'bg-emerald-500/10', text: 'text-emerald-400', icon: <CheckCircle size={12} /> },
+    REJECTED_USER:    { bg: 'bg-red-500/10',     text: 'text-red-400',     icon: <Ban size={12} /> },
+    RESTORED_USER:    { bg: 'bg-sky-500/10',     text: 'text-sky-400',     icon: <RotateCcw size={12} /> },
+    DELETED_USER:     { bg: 'bg-red-500/10',     text: 'text-red-400',     icon: <Trash2 size={12} /> },
+    PENALISED_USER:   { bg: 'bg-amber-500/10',   text: 'text-amber-400',   icon: <TrendingDown size={12} /> },
+    INCREASED_HONOUR: { bg: 'bg-emerald-500/10', text: 'text-emerald-400', icon: <TrendingUp size={12} /> },
+    FORCE_CLOSED_JOB: { bg: 'bg-red-500/10',     text: 'text-red-400',     icon: <XCircle size={12} /> },
+    ACTIVATED_USER:   { bg: 'bg-emerald-500/10', text: 'text-emerald-400', icon: <CheckCircle size={12} /> },
+    DEACTIVATED_USER: { bg: 'bg-[#2a2a2a]',     text: 'text-[#6b6b6b]',   icon: <XCircle size={12} /> },
+  }
+
+  const getStyle = (action) =>
+    ACTION_STYLE[action] || { bg: 'bg-[#2a2a2a]', text: 'text-[#6b6b6b]', icon: <Activity size={12} /> }
+
+  const totalPages = Math.ceil(total / LIMIT)
+
+  return (
+    <div className="space-y-5 animate-fade-in">
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-xl font-extrabold text-white flex items-center gap-2">
+            <Activity size={20} className="text-violet-400" /> Activity Log
+          </h1>
+          <p className="text-xs text-[#6b6b6b] mt-0.5">{total} total actions recorded</p>
+        </div>
+        <button onClick={() => load(page)} className="btn-ghost p-2"><RefreshCw size={15} /></button>
+      </div>
+
+      {loading ? <Spinner /> : logs.length === 0
+        ? <EmptyState icon={<Activity size={32} />} text="No activity recorded yet" />
+        : (
+          <>
+            <div className="space-y-2">
+              {logs.map(log => {
+                const style = getStyle(log.action)
+                return (
+                  <div key={log._id} className="bg-[#141414] border border-[#1e1e1e] rounded-xl px-4 py-3 flex items-start gap-3">
+                    <div className={`inline-flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-semibold shrink-0 border ${style.bg} ${style.text} border-current/20`}>
+                      {style.icon}
+                      <span className="hidden sm:inline">{log.action.replace(/_/g, ' ')}</span>
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="text-sm text-white">
+                        <span className="text-[#f97316]">{log.adminName || 'Admin'}</span>
+                        {' → '}
+                        <span className="text-[#a3a3a3]">{log.targetName || 'Unknown'}</span>
+                        {log.targetType && <span className="text-[#4a4a4a] text-xs"> ({log.targetType})</span>}
+                      </div>
+                      {log.details && (
+                        <div className="text-xs text-[#6b6b6b] mt-0.5 truncate">{log.details}</div>
+                      )}
+                    </div>
+                    <div className="text-xs text-[#4a4a4a] shrink-0 text-right">
+                      {new Date(log.createdAt).toLocaleDateString('en-IN', {
+                        day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit'
+                      })}
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+
+            {/* Pagination */}
+            {totalPages > 1 && (
+              <div className="flex items-center justify-between pt-2">
+                <span className="text-xs text-[#4a4a4a]">
+                  Page {page} of {totalPages}
+                </span>
+                <div className="flex gap-2">
+                  <button onClick={() => setPage(p => Math.max(1, p-1))} disabled={page === 1}
+                    className="btn-ghost text-xs px-3 py-1.5 disabled:opacity-30">← Prev</button>
+                  <button onClick={() => setPage(p => Math.min(totalPages, p+1))} disabled={page === totalPages}
+                    className="btn-ghost text-xs px-3 py-1.5 disabled:opacity-30">Next →</button>
+                </div>
+              </div>
+            )}
+          </>
+        )}
+    </div>
+  )
+}
+
 // ─────────────── Router ───────────────
 export default function AdminDashboard() {
   return (
@@ -721,6 +826,7 @@ export default function AdminDashboard() {
         <Route path="employers"  element={<UserPanel key="employers" userType="employer" />} />
         <Route path="jobs"       element={<JobsPanel />} />
         <Route path="deleted"    element={<DeletedPanel />} />
+        <Route path="activity"   element={<ActivityLogPanel />} />
       </Routes>
     </DashboardLayout>
   )

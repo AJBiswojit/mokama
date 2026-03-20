@@ -3,6 +3,9 @@ const Employer = require('../models/Employer');
 const Admin   = require('../models/Admin');
 const Job     = require('../models/Job');
 const { JOB_STATUS } = require('../models/Job');
+const { updateHonourScore } = require('../utils/honour');
+const HonourLog  = require('../models/HonourLog');
+const { logAdminAction } = require('../utils/adminLog');
 
 const SAFE_SELECT = '-emailOtp -emailOtpExpiry';
 
@@ -106,12 +109,18 @@ exports.penalizeUser = async (req, res) => {
     const { userId, userType, amount } = req.body;
     if (!['worker', 'employer'].includes(userType))
       return res.status(400).json({ success: false, message: 'Invalid user type' });
-    const Model = userType === 'worker' ? Worker : Employer;
-    const user = await Model.findById(userId);
-    if (!user) return res.status(404).json({ success: false, message: 'User not found' });
-    user.honourScore = Math.max(0, Math.min(100, user.honourScore - (amount || 5)));
-    await user.save();
-    res.json({ success: true, message: `Penalised. New score: ${user.honourScore}`, newScore: user.honourScore });
+    const result = await updateHonourScore(
+      userId, userType,
+      { change: -(amount || 5), reason: 'Penalised by admin' },
+      'admin'
+    );
+    if (!result) return res.status(404).json({ success: false, message: 'User not found' });
+    const penUser = await (userType === 'worker' ? Worker : Employer).findById(userId).select('name');
+    logAdminAction(req.user, 'PENALISED_USER', {
+      id: userId, type: userType, name: penUser?.name,
+      details: `Score reduced by ${amount || 5}. New score: ${result.newScore}`
+    });
+    res.json({ success: true, message: `Penalised. New score: ${result.newScore}`, newScore: result.newScore });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
   }
@@ -123,12 +132,18 @@ exports.increaseHonourScore = async (req, res) => {
     const { userId, userType, amount } = req.body;
     if (!['worker', 'employer'].includes(userType))
       return res.status(400).json({ success: false, message: 'Invalid user type' });
-    const Model = userType === 'worker' ? Worker : Employer;
-    const user = await Model.findById(userId);
-    if (!user) return res.status(404).json({ success: false, message: 'User not found' });
-    user.honourScore = Math.max(0, Math.min(100, user.honourScore + (amount || 5)));
-    await user.save();
-    res.json({ success: true, message: `Score increased. New score: ${user.honourScore}`, newScore: user.honourScore });
+    const result = await updateHonourScore(
+      userId, userType,
+      { change: +(amount || 5), reason: 'Score increased by admin' },
+      'admin'
+    );
+    if (!result) return res.status(404).json({ success: false, message: 'User not found' });
+    const incUser = await (userType === 'worker' ? Worker : Employer).findById(userId).select('name');
+    logAdminAction(req.user, 'INCREASED_HONOUR', {
+      id: userId, type: userType, name: incUser?.name,
+      details: `Score increased by ${amount || 5}. New score: ${result.newScore}`
+    });
+    res.json({ success: true, message: `Score increased. New score: ${result.newScore}`, newScore: result.newScore });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
   }
@@ -153,6 +168,10 @@ exports.deleteUser = async (req, res) => {
       { new: true }
     ).select(SAFE_SELECT);
     if (!user) return res.status(404).json({ success: false, message: 'User not found' });
+    logAdminAction(req.user, 'DELETED_USER', {
+      id: user._id, type: userType, name: user.name,
+      details: note || 'Deleted by admin'
+    });
     res.json({ success: true, message: `${userType} deleted successfully` });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
@@ -202,7 +221,39 @@ exports.toggleUserStatus = async (req, res) => {
     if (!user) return res.status(404).json({ success: false, message: 'User not found' });
     user.isActive = !user.isActive;
     await user.save();
+    logAdminAction(req.user, user.isActive ? 'ACTIVATED_USER' : 'DEACTIVATED_USER', {
+      id: user._id, type: userType, name: user.name,
+    });
     res.json({ success: true, message: `User ${user.isActive ? 'activated' : 'deactivated'}`, isActive: user.isActive });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+
+exports.getHonourLog = async (req, res) => {
+  try {
+    const { userId, userType } = req.params;
+    const logs = await HonourLog.find({ userId, userType })
+      .sort({ createdAt: -1 })
+      .limit(50);
+    res.json({ success: true, logs });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+
+exports.getAdminLog = async (req, res) => {
+  try {
+    const AdminLog = require('../models/AdminLog');
+    const { limit = 50, page = 1 } = req.query;
+    const logs = await AdminLog.find()
+      .sort({ createdAt: -1 })
+      .skip((page - 1) * limit)
+      .limit(parseInt(limit));
+    const total = await AdminLog.countDocuments();
+    res.json({ success: true, logs, total });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
   }

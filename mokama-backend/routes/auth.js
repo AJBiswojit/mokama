@@ -3,7 +3,7 @@ const router  = express.Router();
 const {
   workerRegister, workerVerifyOTP, workerLogin, workerLoginVerify,
   employerRegister, employerVerifyOTP, employerLogin, employerLoginVerify,
-  adminLogin, getCategories, getMe,
+  adminLogin, getCategories, getMe, refreshToken,
 } = require('../controllers/authController');
 const { protect } = require('../middlewares/auth');
 const rateLimit = require('express-rate-limit');
@@ -33,5 +33,6 @@ router.post('/admin/login', adminLogin);
 // ── Shared ──
 router.get('/categories', getCategories);
 router.get('/me', protect, getMe);
+router.post('/refresh', refreshToken);   // Refresh access token
 
 module.exports = router;

@@ -35,7 +35,7 @@ export default function EmployerLogin() {
     setLoading(true)
     try {
       const res = await api.post('/auth/employer/login/verify', { mobile, otp })
-      login(res.data.token, { ...res.data.user, role: 'employer' })
+      login(res.data.token, { ...res.data.user, role: 'employer' }, res.data.refreshToken)
       toast.success('Welcome back!')
       navigate('/employer/dashboard')
     } catch (err) {

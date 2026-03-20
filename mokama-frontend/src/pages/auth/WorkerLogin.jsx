@@ -35,7 +35,7 @@ export default function WorkerLogin() {
     setLoading(true)
     try {
       const res = await api.post('/auth/worker/login/verify', { mobile, otp })
-      login(res.data.token, { ...res.data.user, role: 'worker' })
+      login(res.data.token, { ...res.data.user, role: 'worker' }, res.data.refreshToken)
       toast.success('Welcome back!')
       navigate('/worker/dashboard')
     } catch (err) {

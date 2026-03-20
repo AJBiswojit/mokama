@@ -5,6 +5,103 @@ const Employer = require('../models/Employer');
 const { JOB_STATUS } = require('../models/Job');
 const { updateHonourScore } = require('../utils/honour');
 const { NOTIFICATIONS } = require('../services/notificationService');
+const { sendEmail } = require('../utils/emailOtp');
+
+
+// ─────────────── Job Matching ───────────────
+// Fires after job creation — finds top 5 matching available workers
+// and sends them an email notification. Non-blocking, never affects API response.
+
+async function triggerJobMatching(job) {
+  if (!job.workerType && !job.workerTypeName) return;
+
+  const matchQuery = {
+    availabilityStatus: true,
+    status:             'approved',
+    isActive:           true,
+    isDeleted:          { $ne: true },
+    email:              { $exists: true, $ne: '' },
+  };
+
+  // Match by worker type
+  if (job.workerType) {
+    matchQuery.workerType = job.workerType;
+  } else if (job.workerTypeName) {
+    matchQuery.workerTypeName = job.workerTypeName;
+  }
+
+  // Prefer same pincode first, then same first 3 digits (same district)
+  let workers = await Worker.find({
+    ...matchQuery,
+    pincode: job.pincode,
+  }).sort({ honourScore: -1 }).limit(5);
+
+  if (workers.length < 3) {
+    const districtPin = job.pincode?.slice(0, 3);
+    const extra = await Worker.find({
+      ...matchQuery,
+      pincode: { $regex: `^${districtPin}`, $ne: job.pincode },
+      _id: { $nin: workers.map(w => w._id) },
+    }).sort({ honourScore: -1 }).limit(5 - workers.length);
+    workers = [...workers, ...extra];
+  }
+
+  if (workers.length === 0) return;
+
+  const employer = await Employer.findById(job.employer).select('name');
+
+  for (const worker of workers) {
+    sendEmail(
+      worker.email,
+      `New Job Available Near You — ${job.workerTypeName} | MoKama`,
+      `
+      <div style="font-family: Arial, sans-serif; max-width: 480px; margin: 0 auto;
+                  background: #0a0a0a; color: #f0f0f0; padding: 32px; border-radius: 16px;">
+        <h2 style="color: #f97316; margin: 0 0 4px 0;">MoKama</h2>
+        <p style="color: #6b6b6b; font-size: 12px; margin: 0 0 24px 0;">Where Work Meets Trust</p>
+
+        <p style="color: #a3a3a3;">Hi <strong style="color: #f0f0f0;">${worker.name}</strong>,</p>
+        <p style="color: #a3a3a3;">A new <strong style="color: #f97316;">${job.workerTypeName}</strong> job
+           has been posted near you!</p>
+
+        <div style="background: #1a1a1a; border: 1px solid #2a2a2a; border-radius: 12px;
+                    padding: 20px; margin: 20px 0;">
+          <table style="width: 100%; border-collapse: collapse;">
+            <tr><td style="color: #6b6b6b; font-size: 13px; padding: 5px 0;">Job Title</td>
+                <td style="color: #f0f0f0; font-size: 13px; font-weight: bold;">${job.title}</td></tr>
+            <tr><td style="color: #6b6b6b; font-size: 13px; padding: 5px 0;">Posted by</td>
+                <td style="color: #f0f0f0; font-size: 13px;">${employer?.name || 'Employer'}</td></tr>
+            <tr><td style="color: #6b6b6b; font-size: 13px; padding: 5px 0;">Daily Wage</td>
+                <td style="color: #f97316; font-size: 15px; font-weight: bold;">₹${job.wage}</td></tr>
+            <tr><td style="color: #6b6b6b; font-size: 13px; padding: 5px 0;">Location</td>
+                <td style="color: #f0f0f0; font-size: 13px;">${job.address}, ${job.pincode}</td></tr>
+            ${job.startDate ? `<tr><td style="color: #6b6b6b; font-size: 13px; padding: 5px 0;">Start Date</td>
+                <td style="color: #f0f0f0; font-size: 13px;">${new Date(job.startDate).toLocaleDateString('en-IN')}</td></tr>` : ''}
+          </table>
+        </div>
+
+        <p style="color: #6b6b6b; font-size: 12px;">
+          Mark yourself available and login to get hired before someone else does.
+        </p>
+
+        <a href="${process.env.FRONTEND_URL || 'http://localhost:5173'}/worker/dashboard"
+           style="display: block; background: #f97316; color: white; text-align: center;
+                  padding: 14px; border-radius: 10px; text-decoration: none;
+                  font-weight: bold; font-size: 15px; margin: 20px 0;">
+          View Jobs on MoKama
+        </a>
+
+        <hr style="border: none; border-top: 1px solid #2a2a2a; margin: 24px 0;" />
+        <p style="color: #3a3a3a; font-size: 12px; text-align: center; margin: 0;">
+          © 2025 MoKama — Kaam ko Mukam tak
+        </p>
+      </div>
+      `
+    );
+  }
+
+  console.log(`📬 Job match: notified ${workers.length} workers for job "${job.title}"`);
+}
 
 // ─────────────── Employer: Create Job ───────────────
 
@@ -39,6 +136,12 @@ exports.createJob = async (req, res) => {
     });
 
     await Employer.findByIdAndUpdate(req.user._id, { $inc: { activeJobs: 1 } });
+
+    // Feature 8 — Job Matching: notify top 5 matching workers automatically
+    triggerJobMatching(job).catch(err =>
+      console.error('Job matching error:', err.message)
+    );
+
     res.status(201).json({ success: true, job });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
@@ -57,9 +160,31 @@ exports.sendJobRequest = async (req, res) => {
     const worker = await Worker.findById(workerId);
     if (!worker) return res.status(404).json({ success: false, message: 'Worker not found' });
 
-    // Check for existing pending request
-    const existing = await JobRequest.findOne({ job: jobId, worker: workerId, status: 'PENDING' });
-    if (existing) return res.status(400).json({ success: false, message: 'Request already sent' });
+    // Fix 3: Improved duplicate request prevention
+    // Check any non-rejected, non-expired request for this job+worker combo
+    const existing = await JobRequest.findOne({
+      job: jobId,
+      worker: workerId,
+      status: { $in: ['PENDING', 'ACCEPTED'] }
+    });
+    if (existing) {
+      const msg = existing.status === 'ACCEPTED'
+        ? 'This worker has already accepted a request for this job.'
+        : 'A request is already pending for this worker. Wait for their response.';
+      return res.status(400).json({ success: false, message: msg });
+    }
+
+    // Also check if worker already has an active job (WORKING status)
+    const workerBusy = await Job.findOne({
+      worker: workerId,
+      status: { $in: [JOB_STATUS.WORKING, JOB_STATUS.ACCEPTED] }
+    });
+    if (workerBusy) {
+      return res.status(400).json({
+        success: false,
+        message: 'This worker is currently busy with another job.'
+      });
+    }
 
     const expiryMinutes = parseInt(process.env.JOB_REQUEST_EXPIRY_MINUTES) || 10;
     const expiresAt = new Date(Date.now() + expiryMinutes * 60 * 1000);
@@ -73,6 +198,56 @@ exports.sendJobRequest = async (req, res) => {
     await job.save();
 
     await NOTIFICATIONS.jobRequestSent(workerId, jobId, job.title);
+
+    // Fix 5: Email notification to worker when job request arrives
+    const employer = await Employer.findById(req.user._id).select('name');
+    sendEmail(
+      worker.email,
+      `New Job Request — ${job.title} | MoKama`,
+      `
+      <div style="font-family: Arial, sans-serif; max-width: 480px; margin: 0 auto;
+                  background: #0a0a0a; color: #f0f0f0; padding: 32px; border-radius: 16px;">
+        <h2 style="color: #f97316; margin: 0 0 4px 0;">MoKama</h2>
+        <p style="color: #6b6b6b; font-size: 12px; margin: 0 0 24px 0;">Where Work Meets Trust</p>
+
+        <p style="color: #a3a3a3;">Hi <strong style="color: #f0f0f0;">${worker.name}</strong>,</p>
+        <p style="color: #a3a3a3;">You have received a new job request!</p>
+
+        <div style="background: #1a1a1a; border: 1px solid #2a2a2a; border-radius: 12px; padding: 20px; margin: 20px 0;">
+          <table style="width: 100%; border-collapse: collapse;">
+            <tr><td style="color: #6b6b6b; font-size: 13px; padding: 4px 0;">Job</td>
+                <td style="color: #f0f0f0; font-size: 13px; font-weight: bold;">${job.title}</td></tr>
+            <tr><td style="color: #6b6b6b; font-size: 13px; padding: 4px 0;">Employer</td>
+                <td style="color: #f0f0f0; font-size: 13px;">${employer?.name || 'Unknown'}</td></tr>
+            <tr><td style="color: #6b6b6b; font-size: 13px; padding: 4px 0;">Wage</td>
+                <td style="color: #f97316; font-size: 13px; font-weight: bold;">₹${job.wage}/day</td></tr>
+            <tr><td style="color: #6b6b6b; font-size: 13px; padding: 4px 0;">Location</td>
+                <td style="color: #f0f0f0; font-size: 13px;">${job.address}, ${job.pincode}</td></tr>
+          </table>
+        </div>
+
+        <div style="background: #f97316/15; border: 1px solid #f97316; border-radius: 8px;
+                    padding: 12px; margin: 16px 0; text-align: center;">
+          <span style="color: #f97316; font-size: 13px; font-weight: bold;">
+            ⏱ Respond within ${expiryMinutes} minutes to avoid a penalty
+          </span>
+        </div>
+
+        <a href="${process.env.FRONTEND_URL || 'http://localhost:5173'}/worker/dashboard"
+           style="display: block; background: #f97316; color: white; text-align: center;
+                  padding: 14px; border-radius: 10px; text-decoration: none;
+                  font-weight: bold; font-size: 15px; margin: 20px 0;">
+          View & Respond Now
+        </a>
+
+        <hr style="border: none; border-top: 1px solid #2a2a2a; margin: 24px 0;" />
+        <p style="color: #3a3a3a; font-size: 12px; text-align: center; margin: 0;">
+          © 2025 MoKama — Kaam ko Mukam tak
+        </p>
+      </div>
+      `
+    ); // non-awaited — fire and forget, don't block the response
+
     res.json({ success: true, request, expiresAt });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });

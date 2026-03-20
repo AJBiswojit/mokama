@@ -2,7 +2,7 @@ const Worker  = require('../models/Worker');
 const Employer = require('../models/Employer');
 const Admin   = require('../models/Admin');
 const { WorkerType, EmployerCategory } = require('../models/Category');
-const { generateToken } = require('../utils/jwt');
+const { generateToken, generateTokens } = require('../utils/jwt');
 const { generateEmailOTP, getEmailOTPExpiry, sendEmailOTP } = require('../utils/emailOtp');
 
 const INDIAN_PHONE = /^[6-9]\d{9}$/;
@@ -105,11 +105,12 @@ exports.workerVerifyOTP = async (req, res) => {
     worker.emailOtpExpiry  = undefined;
     await worker.save();
 
-    const token = generateToken({ id: worker._id, role: 'worker' });
+    const { accessToken, refreshToken } = generateTokens({ id: worker._id, role: 'worker' });
     res.json({
       success: true,
       message: 'Verified successfully',
-      token,
+      token: accessToken,
+      refreshToken,
       user: worker.toSafeObject(),
       accountStatus: worker.status,
     });
@@ -177,11 +178,12 @@ exports.workerLoginVerify = async (req, res) => {
     worker.emailOtpExpiry = undefined;
     await worker.save();
 
-    const token = generateToken({ id: worker._id, role: 'worker' });
+    const { accessToken, refreshToken } = generateTokens({ id: worker._id, role: 'worker' });
     res.json({
       success: true,
       message: 'Login successful',
-      token,
+      token: accessToken,
+      refreshToken,
       user: worker.toSafeObject(),
       accountStatus: worker.status,
     });
@@ -276,11 +278,12 @@ exports.employerVerifyOTP = async (req, res) => {
     employer.emailOtpExpiry  = undefined;
     await employer.save();
 
-    const token = generateToken({ id: employer._id, role: 'employer' });
+    const { accessToken, refreshToken } = generateTokens({ id: employer._id, role: 'employer' });
     res.json({
       success: true,
       message: 'Verified successfully',
-      token,
+      token: accessToken,
+      refreshToken,
       user: employer.toSafeObject(),
       accountStatus: employer.status,
     });
@@ -398,4 +401,51 @@ exports.getCategories = async (req, res) => {
 
 exports.getMe = async (req, res) => {
   res.json({ success: true, user: req.user, role: req.userRole });
+};
+
+// ─────────────────────────────────────────────────────────
+//  REFRESH TOKEN
+// ─────────────────────────────────────────────────────────
+
+// POST /auth/refresh
+exports.refreshToken = async (req, res) => {
+  try {
+    const { refreshToken } = req.body;
+    if (!refreshToken)
+      return res.status(401).json({ success: false, message: 'Refresh token required' });
+
+    const { verifyRefreshToken, generateTokens } = require('../utils/jwt');
+    let decoded;
+    try {
+      decoded = verifyRefreshToken(refreshToken);
+    } catch {
+      return res.status(401).json({ success: false, message: 'Invalid or expired refresh token. Please login again.' });
+    }
+
+    // Verify user still exists and is active
+    const Worker   = require('../models/Worker');
+    const Employer = require('../models/Employer');
+    const Admin    = require('../models/Admin');
+
+    let user;
+    if (decoded.role === 'worker')       user = await Worker.findById(decoded.id);
+    else if (decoded.role === 'employer') user = await Employer.findById(decoded.id);
+    else if (decoded.role === 'admin')    user = await Admin.findById(decoded.id);
+
+    if (!user || user.isDeleted || user.isActive === false)
+      return res.status(401).json({ success: false, message: 'Account no longer active. Please login again.' });
+
+    const { accessToken, refreshToken: newRefreshToken } = generateTokens({
+      id: decoded.id,
+      role: decoded.role,
+    });
+
+    res.json({
+      success: true,
+      token: accessToken,
+      refreshToken: newRefreshToken,
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
 };

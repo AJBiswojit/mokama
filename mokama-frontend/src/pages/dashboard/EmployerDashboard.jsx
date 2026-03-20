@@ -11,6 +11,7 @@ import {
 } from 'lucide-react'
 import { formatDate, timeAgo } from '../../utils/honour'
 import StatusBanner from '../../components/StatusBanner'
+import ProfileCompleteness from '../../components/ProfileCompleteness'
 
 const NAV = [
   { href: '/employer/dashboard',             label: 'Dashboard',    icon: <LayoutDashboard size={16} /> },
@@ -75,6 +76,9 @@ function Overview() {
 
       {/* ── Account Status Banner ── */}
       <StatusBanner />
+
+      {/* ── Profile Completeness ── */}
+      <ProfileCompleteness user={user} role="employer" />
 
       <div className="card flex items-center gap-6 bg-[#141414] border border-[#2a2a2a]">
         <HonourBadge score={user?.honourScore} />

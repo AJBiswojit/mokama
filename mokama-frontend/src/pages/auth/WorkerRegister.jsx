@@ -69,7 +69,7 @@ export default function WorkerRegister() {
       const res = await api.post('/auth/worker/verify-otp', {
         mobile: form.mobile, otp
       })
-      login(res.data.token, { ...res.data.user, role: 'worker' })
+      login(res.data.token, { ...res.data.user, role: 'worker' }, res.data.refreshToken)
       toast.success('Welcome to MoKama!')
       navigate('/worker/dashboard')
     } catch (err) {
@@ -173,7 +173,7 @@ export default function WorkerRegister() {
                   <p className="text-xs text-[#6b6b6b] mt-1">Your mobile is your unique ID — used to identify you</p>
                 </div>
                 <div>
-                  <label className="label">Email Address *</label>
+                  <label className="label">Email Address * <span className="text-[#f97316] text-xs">(OTP will be sent here)</span></label>
                   <input className="input" type="email" placeholder="your@email.com"
                     value={form.email} onChange={e => set('email', e.target.value)} />
                   <p className="text-xs text-[#6b6b6b] mt-1">You will log in using your mobile number + email OTP</p>

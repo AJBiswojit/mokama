@@ -80,4 +80,18 @@ router.patch('/availability', protect, requireRole('worker'), async (req, res) =
   }
 });
 
+
+// ── Honour Score Log — worker sees their own history ──
+router.get('/honour-log', protect, requireRole('worker'), async (req, res) => {
+  try {
+    const HonourLog = require('../models/HonourLog');
+    const logs = await HonourLog.find({ userId: req.user._id, userType: 'worker' })
+      .sort({ createdAt: -1 })
+      .limit(30);
+    res.json({ success: true, logs });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
 module.exports = router;

@@ -52,7 +52,7 @@ export default function EmployerRegister() {
       const res = await api.post('/auth/employer/verify-otp', {
         mobile: form.mobile, otp
       })
-      login(res.data.token, { ...res.data.user, role: 'employer' })
+      login(res.data.token, { ...res.data.user, role: 'employer' }, res.data.refreshToken)
       toast.success('Welcome to MoKama!')
       navigate('/employer/dashboard')
     } catch (err) {
@@ -113,7 +113,7 @@ export default function EmployerRegister() {
                   <p className="text-xs text-[#6b6b6b] mt-1">Used to identify you — not for SMS</p>
                 </div>
                 <div>
-                  <label className="label">Email Address *</label>
+                  <label className="label">Email Address * <span className="text-[#f97316] text-xs">(OTP will be sent here)</span></label>
                   <input className="input" type="email" placeholder="your@email.com"
                     value={form.email} onChange={e => set('email', e.target.value)} />
                 </div>
@@ -141,7 +141,7 @@ export default function EmployerRegister() {
                 </div>
                 <button className="btn-primary w-full justify-center shadow-glow" onClick={handleRegister} disabled={loading}>
                   {loading && <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />}
-                  Send OTP
+                  Register &amp; Send OTP
                 </button>
               </div>
             ) : (

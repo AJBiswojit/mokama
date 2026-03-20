@@ -41,4 +41,18 @@ router.get('/dashboard', protect, requireRole('employer'), async (req, res) => {
   }
 });
 
+
+// ── Honour Score Log ──
+router.get('/honour-log', protect, requireRole('employer'), async (req, res) => {
+  try {
+    const HonourLog = require('../models/HonourLog');
+    const logs = await HonourLog.find({ userId: req.user._id, userType: 'employer' })
+      .sort({ createdAt: -1 })
+      .limit(30);
+    res.json({ success: true, logs });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
 module.exports = router;

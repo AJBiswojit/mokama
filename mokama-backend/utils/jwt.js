@@ -1,13 +1,37 @@
 const jwt = require('jsonwebtoken');
 
-const generateToken = (payload) => {
-  return jwt.sign(payload, process.env.JWT_SECRET || 'mokama_secret_key', {
-    expiresIn: process.env.JWT_EXPIRE || '7d'
-  });
+// Short-lived access token — 15 minutes
+const generateAccessToken = (payload) => {
+  return jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '15m' });
 };
+
+// Long-lived refresh token — 30 days
+const generateRefreshToken = (payload) => {
+  return jwt.sign(payload, process.env.JWT_REFRESH_SECRET, { expiresIn: '30d' });
+};
+
+// Generate both at once — used on login/register
+const generateTokens = (payload) => ({
+  accessToken:  generateAccessToken(payload),
+  refreshToken: generateRefreshToken(payload),
+});
 
 const verifyToken = (token) => {
-  return jwt.verify(token, process.env.JWT_SECRET || 'mokama_secret_key');
+  return jwt.verify(token, process.env.JWT_SECRET);
 };
 
-module.exports = { generateToken, verifyToken };
+const verifyRefreshToken = (token) => {
+  return jwt.verify(token, process.env.JWT_REFRESH_SECRET);
+};
+
+// Backward compat — old code that calls generateToken still works
+const generateToken = generateAccessToken;
+
+module.exports = {
+  generateToken,
+  generateTokens,
+  generateAccessToken,
+  generateRefreshToken,
+  verifyToken,
+  verifyRefreshToken,
+};

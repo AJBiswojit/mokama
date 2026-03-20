@@ -33,7 +33,8 @@ const jobSchema = new mongoose.Schema({
   paymentConfirmedByWorker: { type: Boolean, default: false },
   disputeFlag: { type: Boolean, default: false },
   disputeNote: { type: String, default: '' },
-  adminNote: { type: String, default: '' }
+  adminNote:  { type: String, default: '' },
+  isHidden:   { type: Boolean, default: false }   // admin can hide without destroying data
 }, { timestamps: true });
 
 jobSchema.statics.JOB_STATUS = JOB_STATUS;
