@@ -2,11 +2,12 @@ import { Routes, Route, Link } from 'react-router-dom'
 import { useState, useEffect, useCallback } from 'react'
 import { api } from '../../api/AuthContext'
 import DashboardLayout, { HonourBadge, StatusBadge } from '../../components/DashboardLayout'
+import Pagination from '../../components/Pagination'
 import toast from 'react-hot-toast'
 import {
   LayoutDashboard, Users, Briefcase, AlertCircle, Shield,
   TrendingDown, TrendingUp, RefreshCw, Search, XCircle, CheckCircle,
-  Loader, Clock, UserCheck, Ban, ChevronRight, Mail, Trash2, RotateCcw, Activity
+  Loader, Clock, UserCheck, Ban, ChevronRight, Mail, Trash2, RotateCcw, Activity, EyeOff, Eye
 } from 'lucide-react'
 import { formatDate } from '../../utils/honour'
 
@@ -229,7 +230,7 @@ function ApprovalsPanel() {
     finally { setLoading(false) }
   }, [])
 
-  useEffect(() => { load() }, [])
+  useEffect(() => { load('', 1) }, [])
 
   const approve = async (id, type) => {
     setActing(id + 'approve')
@@ -335,31 +336,34 @@ function ApprovalsPanel() {
 // ─────────────── Shared User List ───────────────
 function UserPanel({ userType }) {
   const isWorker = userType === 'worker'
-  const [users, setUsers]     = useState([])
-  const [loading, setLoading] = useState(true)
-  const [search, setSearch]   = useState('')
-  const [acting, setActing]   = useState(null)
-  const [rejectModal, setRejectModal]   = useState(null)
-  const [deleteModal, setDeleteModal]   = useState(null)
+  const [users, setUsers]       = useState([])
+  const [loading, setLoading]   = useState(true)
+  const [search, setSearch]     = useState('')
+  const [acting, setActing]     = useState(null)
+  const [rejectModal, setRejectModal] = useState(null)
+  const [deleteModal, setDeleteModal] = useState(null)
+  const [page, setPage]         = useState(1)
+  const [meta, setMeta]         = useState({ total: 0, totalPages: 1, limit: 15 })
 
   const apiPath = isWorker ? '/admin/workers' : '/admin/employers'
 
-  const load = useCallback(async (q = '') => {
+  const load = useCallback(async (q = '', p = 1) => {
     setLoading(true)
     try {
-      const res = await api.get(`${apiPath}?search=${q}&limit=50`)
+      const res = await api.get(`${apiPath}?search=${q}&limit=15&page=${p}`)
       setUsers((isWorker ? res.data.workers : res.data.employers) || [])
+      setMeta({ total: res.data.total || 0, totalPages: res.data.totalPages || 1, limit: 15 })
     } catch { toast.error('Failed') }
     finally { setLoading(false) }
   }, [apiPath, isWorker])
 
-  useEffect(() => { load() }, [])
+  useEffect(() => { load('', 1) }, [])
 
   const toggle = async (id) => {
     setActing(id + 'toggle')
     try {
       const res = await api.patch(`/admin/users/${userType}/${id}/toggle`)
-      toast.success(res.data.message); load(search)
+      toast.success(res.data.message); load(search, page)
     } catch { toast.error('Failed') }
     finally { setActing(null) }
   }
@@ -368,7 +372,7 @@ function UserPanel({ userType }) {
     setActing(id + 'p')
     try {
       const res = await api.post('/admin/penalize', { userId: id, userType, amount: 5 })
-      toast.success(res.data.message); load(search)
+      toast.success(res.data.message); load(search, page)
     } catch { toast.error('Failed') }
     finally { setActing(null) }
   }
@@ -377,7 +381,7 @@ function UserPanel({ userType }) {
     setActing(id + 'inc')
     try {
       const res = await api.post('/admin/increase-honour', { userId: id, userType, amount: 5 })
-      toast.success(res.data.message); load(search)
+      toast.success(res.data.message); load(search, page)
     } catch { toast.error('Failed') }
     finally { setActing(null) }
   }
@@ -387,7 +391,7 @@ function UserPanel({ userType }) {
     setActing(id + 'av')
     try {
       await api.patch(`/admin/workers/${id}/availability`, { availabilityStatus: !current })
-      toast.success('Availability updated'); load(search)
+      toast.success('Availability updated'); load(search, page)
     } catch { toast.error('Failed') }
     finally { setActing(null) }
   }
@@ -396,7 +400,7 @@ function UserPanel({ userType }) {
     setActing(id + 'approve')
     try {
       await api.patch(`/admin/users/${userType}/${id}/approve`)
-      toast.success('Approved!'); load(search)
+      toast.success('Approved!'); load(search, page)
     } catch { toast.error('Failed') }
     finally { setActing(null) }
   }
@@ -405,7 +409,7 @@ function UserPanel({ userType }) {
     setActing(rejectModal + 'reject')
     try {
       await api.patch(`/admin/users/${userType}/${rejectModal}/reject`, { reason })
-      toast.success('Rejected'); setRejectModal(null); load(search)
+      toast.success('Rejected'); setRejectModal(null); load(search, page)
     } catch { toast.error('Failed') }
     finally { setActing(null) }
   }
@@ -414,7 +418,7 @@ function UserPanel({ userType }) {
     setActing(deleteModal.id + 'delete')
     try {
       await api.delete(`/admin/users/${userType}/${deleteModal.id}`, { data: { note } })
-      toast.success('Profile deleted'); setDeleteModal(null); load(search)
+      toast.success('Profile deleted'); setDeleteModal(null); load(search, page)
     } catch { toast.error('Failed to delete') }
     finally { setActing(null) }
   }
@@ -432,8 +436,8 @@ function UserPanel({ userType }) {
         <div className="flex gap-2">
           <input className="input w-48 text-xs" placeholder="Search name/mobile/email..."
             value={search} onChange={e => setSearch(e.target.value)}
-            onKeyDown={e => e.key === 'Enter' && load(search)} />
-          <button className="btn-ghost p-2" onClick={() => load(search)}><Search size={16} /></button>
+            onKeyDown={e => { if (e.key === 'Enter') { setPage(1); load(search, 1) } }} />
+          <button className="btn-ghost p-2" onClick={() => { setPage(1); load(search, 1) }}><Search size={16} /></button>
         </div>
       </div>
 
@@ -515,6 +519,12 @@ function UserPanel({ userType }) {
           </div>
         )}
 
+      {/* Pagination */}
+      {!loading && users.length > 0 && (
+        <Pagination page={page} totalPages={meta.totalPages} total={meta.total}
+          limit={meta.limit} onPage={(p) => { setPage(p); load(search, p) }} />
+      )}
+
       {rejectModal && (
         <RejectModal title="Reject User" loading={acting === rejectModal + 'reject'}
           onConfirm={confirmReject} onCancel={() => setRejectModal(null)} />
@@ -545,7 +555,7 @@ function DeletedPanel() {
     finally { setLoading(false) }
   }, [])
 
-  useEffect(() => { load() }, [])
+  useEffect(() => { load('', 1) }, [])
 
   const restore = async (id, type) => {
     setActing(id + 'restore')
@@ -643,24 +653,35 @@ function JobsPanel() {
   const [jobs, setJobs]         = useState([])
   const [loading, setLoading]   = useState(true)
   const [statusFilter, setStatusFilter] = useState('')
+  const [showHidden, setShowHidden] = useState(false)
   const [acting, setActing]     = useState(null)
 
-  const load = useCallback(async (s = '') => {
+  const load = useCallback(async (s = '', hidden = false) => {
     setLoading(true)
     try {
       const res = await api.get(`/admin/jobs?status=${s}&limit=50`)
-      setJobs(res.data.jobs || [])
+      const all = res.data.jobs || []
+      setJobs(hidden ? all : all.filter(j => !j.isHidden))
     } catch { toast.error('Failed') }
     finally { setLoading(false) }
   }, [])
 
-  useEffect(() => { load() }, [])
+  useEffect(() => { load('', 1) }, [])
 
   const forceClose = async (id) => {
     setActing(id)
     try {
       await api.patch(`/admin/jobs/${id}/force-close`, { note: 'Admin force closed' })
-      toast.success('Job force closed'); load(statusFilter)
+      toast.success('Job force closed'); load(statusFilter, showHidden)
+    } catch { toast.error('Failed') }
+    finally { setActing(null) }
+  }
+
+  const toggleHide = async (id) => {
+    setActing(id + 'h')
+    try {
+      const res = await api.patch(`/admin/jobs/${id}/toggle-hidden`)
+      toast.success(res.data.message); load(statusFilter, showHidden)
     } catch { toast.error('Failed') }
     finally { setActing(null) }
   }
@@ -670,11 +691,17 @@ function JobsPanel() {
       <div className="flex items-center gap-3 flex-wrap">
         <h1 className="text-xl font-extrabold text-white flex-1">All Jobs</h1>
         <select className="input w-44 text-xs" value={statusFilter}
-          onChange={e => { setStatusFilter(e.target.value); load(e.target.value) }}>
+          onChange={e => { setStatusFilter(e.target.value); load(e.target.value, showHidden) }}>
           {['', 'OPEN', 'REQUEST_SENT', 'ACCEPTED', 'WORKING', 'PAYMENT_PENDING', 'COMPLETED', 'CANCELLED']
             .map(s => <option key={s} value={s}>{s || 'All Statuses'}</option>)}
         </select>
-        <button className="btn-ghost p-2" onClick={() => load(statusFilter)}><RefreshCw size={15} /></button>
+        <button
+          onClick={() => { setShowHidden(h => { load(statusFilter, !h); return !h }) }}
+          className={`btn-ghost text-xs px-3 py-1.5 flex items-center gap-1.5 ${showHidden ? 'text-amber-400' : 'text-[#6b6b6b]'}`}>
+          {showHidden ? <Eye size={14} /> : <EyeOff size={14} />}
+          {showHidden ? 'Hide Hidden' : 'Show Hidden'}
+        </button>
+        <button className="btn-ghost p-2" onClick={() => load(statusFilter, showHidden)}><RefreshCw size={15} /></button>
       </div>
       {loading ? <Spinner /> : jobs.length === 0
         ? <EmptyState icon={<AlertCircle size={32} />} text="No jobs found" />
@@ -696,12 +723,27 @@ function JobsPanel() {
                       <span>{formatDate(job.createdAt)}</span>
                     </div>
                   </div>
-                  {!['COMPLETED', 'CANCELLED', 'EXPIRED'].includes(job.status) && (
-                    <button onClick={() => forceClose(job._id)} disabled={acting === job._id}
-                      className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-red-500/10 border border-red-500/20 text-red-400 text-xs font-semibold rounded-xl hover:bg-red-500/20 transition-all shrink-0">
-                      {acting === job._id ? <Loader size={13} className="animate-spin" /> : <XCircle size={13} />} Force Close
+                  <div className="flex gap-2 shrink-0">
+                    {job.isHidden && (
+                      <span className="inline-flex items-center gap-1 px-2 py-1 bg-amber-500/10 border border-amber-500/20 text-amber-400 text-xs rounded-lg">
+                        <EyeOff size={11} /> Hidden
+                      </span>
+                    )}
+                    <button onClick={() => toggleHide(job._id)} disabled={!!acting}
+                      className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-xl transition-all shrink-0
+                        ${job.isHidden
+                          ? 'bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 hover:bg-emerald-500/20'
+                          : 'bg-amber-500/10 border border-amber-500/20 text-amber-400 hover:bg-amber-500/20'}`}>
+                      {acting === job._id + 'h' ? <Loader size={13} className="animate-spin" /> : job.isHidden ? <Eye size={13} /> : <EyeOff size={13} />}
+                      {job.isHidden ? 'Unhide' : 'Hide'}
                     </button>
-                  )}
+                    {!['COMPLETED', 'CANCELLED', 'EXPIRED'].includes(job.status) && (
+                      <button onClick={() => forceClose(job._id)} disabled={acting === job._id}
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-red-500/10 border border-red-500/20 text-red-400 text-xs font-semibold rounded-xl hover:bg-red-500/20 transition-all shrink-0">
+                        {acting === job._id ? <Loader size={13} className="animate-spin" /> : <XCircle size={13} />} Force Close
+                      </button>
+                    )}
+                  </div>
                 </div>
               </div>
             ))}

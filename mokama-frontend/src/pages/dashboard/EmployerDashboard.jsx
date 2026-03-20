@@ -404,6 +404,15 @@ function EmployerProfile() {
   const [editing, setEditing] = useState(false)
   const [form, setForm] = useState({ name: user?.name || '', address: user?.address || '', pincode: user?.pincode || '' })
   const [loading, setLoading] = useState(false)
+  const [honourLogs, setHonourLogs] = useState([])
+  const [logsLoading, setLogsLoading] = useState(true)
+
+  useEffect(() => {
+    api.get('/employer/honour-log')
+      .then(r => setHonourLogs(r.data.logs || []))
+      .catch(() => {})
+      .finally(() => setLogsLoading(false))
+  }, [])
 
   const save = async () => {
     setLoading(true)
@@ -455,6 +464,34 @@ function EmployerProfile() {
               <div key={k} className="flex justify-between gap-4 py-2 border-b border-[#2a2a2a] last:border-0">
                 <span className="text-[#6b6b6b]">{k}</span>
                 <span className="text-white font-medium text-right">{v}</span>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+      {/* ── Honour Score History ── */}
+      <div className="card">
+        <h2 className="font-bold text-white mb-4 flex items-center gap-2">
+          <Star size={16} className="text-[#f97316]" /> Honour Score History
+        </h2>
+        {logsLoading ? (
+          <div className="flex justify-center py-6"><div className="w-6 h-6 border-2 border-[#f97316] border-t-transparent rounded-full animate-spin" /></div>
+        ) : honourLogs.length === 0 ? (
+          <div className="text-center py-6 text-[#4a4a4a] text-sm">No score changes yet</div>
+        ) : (
+          <div className="space-y-2">
+            {honourLogs.map(log => (
+              <div key={log._id} className="flex items-center justify-between py-2.5 border-b border-[#1e1e1e] last:border-0">
+                <div className="flex items-center gap-3">
+                  <span className={`text-sm font-bold w-10 text-right ${log.change > 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                    {log.change > 0 ? '+' : ''}{log.change}
+                  </span>
+                  <div>
+                    <div className="text-sm text-[#a3a3a3]">{log.reason}</div>
+                    <div className="text-xs text-[#4a4a4a]">{formatDate(log.createdAt)}</div>
+                  </div>
+                </div>
+                <span className="text-xs text-[#6b6b6b] font-mono">{log.newScore}/100</span>
               </div>
             ))}
           </div>

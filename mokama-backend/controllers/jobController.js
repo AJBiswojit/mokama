@@ -400,7 +400,7 @@ exports.confirmPaymentReceived = async (req, res) => {
 exports.getWorkerJobs = async (req, res) => {
   try {
     const { status } = req.query;
-    const query = { worker: req.user._id };
+    const query = { worker: req.user._id, isHidden: { $ne: true } };
     if (status) {
       // Support comma-separated multiple statuses: ?status=ACCEPTED,WORKING
       const statuses = status.split(',').map(s => s.trim()).filter(Boolean);
@@ -432,7 +432,7 @@ exports.getWorkerRequests = async (req, res) => {
 exports.getEmployerJobs = async (req, res) => {
   try {
     const { status } = req.query;
-    const query = { employer: req.user._id };
+    const query = { employer: req.user._id, isHidden: { $ne: true } };
     if (status) {
       const statuses = status.split(',').map(s => s.trim()).filter(Boolean);
       query.status = statuses.length === 1 ? statuses[0] : { $in: statuses };

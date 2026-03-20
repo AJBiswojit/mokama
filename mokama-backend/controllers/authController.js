@@ -4,6 +4,7 @@ const Admin   = require('../models/Admin');
 const { WorkerType, EmployerCategory } = require('../models/Category');
 const { generateToken, generateTokens } = require('../utils/jwt');
 const { generateEmailOTP, getEmailOTPExpiry, sendEmailOTP } = require('../utils/emailOtp');
+const otpCache = require('../utils/otpCache');
 
 const INDIAN_PHONE = /^[6-9]\d{9}$/;
 const EMAIL_REGEX  = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -45,8 +46,7 @@ exports.workerRegister = async (req, res) => {
     }
 
     // Generate OTP
-    const otp       = generateEmailOTP();
-    const otpExpiry = getEmailOTPExpiry();
+    const otp = generateEmailOTP();
 
     const data = {
       name, fatherName, gender, dob, mobile,
@@ -56,8 +56,6 @@ exports.workerRegister = async (req, res) => {
       workerTypeName,
       experience: experience || 0,
       labourCardNumber: labourCardNumber || '',
-      emailOtp: otp,
-      emailOtpExpiry: otpExpiry,
       isVerified: false,
       status: byMobile?.status || 'pending',
     };
@@ -68,6 +66,9 @@ exports.workerRegister = async (req, res) => {
     } else {
       await Worker.create(data);
     }
+
+    // Store OTP in fast in-memory cache instead of DB
+    otpCache.set(mobile, otp);
 
     const smsResult = await sendEmailOTP(email, otp, name);
     if (!smsResult.success)
@@ -94,15 +95,13 @@ exports.workerVerifyOTP = async (req, res) => {
     const worker = await Worker.findOne({ mobile });
     if (!worker)
       return res.status(404).json({ success: false, message: 'Worker not found. Please register first.' });
-    if (!worker.emailOtp || worker.emailOtp !== otp)
-      return res.status(400).json({ success: false, message: 'Invalid OTP. Please check and try again.' });
-    if (new Date() > worker.emailOtpExpiry)
-      return res.status(400).json({ success: false, message: 'OTP has expired. Please request a new one.' });
+
+    const cacheResult = otpCache.verify(mobile, otp);
+    if (!cacheResult.valid)
+      return res.status(400).json({ success: false, message: cacheResult.reason });
 
     worker.isVerified      = true;
     worker.isEmailVerified = true;
-    worker.emailOtp        = undefined;
-    worker.emailOtpExpiry  = undefined;
     await worker.save();
 
     const { accessToken, refreshToken } = generateTokens({ id: worker._id, role: 'worker' });
@@ -138,11 +137,8 @@ exports.workerLogin = async (req, res) => {
     if (!worker.isActive)
       return res.status(403).json({ success: false, message: 'Account is disabled. Contact support.' });
 
-    const otp       = generateEmailOTP();
-    const otpExpiry = getEmailOTPExpiry();
-    worker.emailOtp       = otp;
-    worker.emailOtpExpiry = otpExpiry;
-    await worker.save();
+    const otp = generateEmailOTP();
+    otpCache.set(mobile, otp);   // cache only — no DB write
 
     const result = await sendEmailOTP(worker.email, otp, worker.name);
     if (!result.success)
@@ -169,14 +165,10 @@ exports.workerLoginVerify = async (req, res) => {
     const worker = await Worker.findOne({ mobile });
     if (!worker)
       return res.status(404).json({ success: false, message: 'Worker not found' });
-    if (!worker.emailOtp || worker.emailOtp !== otp)
-      return res.status(400).json({ success: false, message: 'Invalid OTP. Please check and try again.' });
-    if (new Date() > worker.emailOtpExpiry)
-      return res.status(400).json({ success: false, message: 'OTP has expired. Please request a new one.' });
 
-    worker.emailOtp       = undefined;
-    worker.emailOtpExpiry = undefined;
-    await worker.save();
+    const cacheResult = otpCache.verify(mobile, otp);
+    if (!cacheResult.valid)
+      return res.status(400).json({ success: false, message: cacheResult.reason });
 
     const { accessToken, refreshToken } = generateTokens({ id: worker._id, role: 'worker' });
     res.json({
@@ -220,8 +212,7 @@ exports.employerRegister = async (req, res) => {
     if (employerCategory)
       catDoc = await EmployerCategory.findOne({ name: employerCategory });
 
-    const otp       = generateEmailOTP();
-    const otpExpiry = getEmailOTPExpiry();
+    const otp = generateEmailOTP();
 
     const data = {
       name, mobile,
@@ -229,8 +220,6 @@ exports.employerRegister = async (req, res) => {
       address, pincode,
       employerCategory: catDoc?._id,
       employerCategoryName: employerCategory || '',
-      emailOtp: otp,
-      emailOtpExpiry: otpExpiry,
       isVerified: false,
       status: byMobile?.status || 'pending',
     };
@@ -241,6 +230,8 @@ exports.employerRegister = async (req, res) => {
     } else {
       await Employer.create(data);
     }
+
+    otpCache.set(mobile, otp);   // cache only — no DB write
 
     const result = await sendEmailOTP(email, otp, name);
     if (!result.success)
@@ -267,15 +258,13 @@ exports.employerVerifyOTP = async (req, res) => {
     const employer = await Employer.findOne({ mobile });
     if (!employer)
       return res.status(404).json({ success: false, message: 'Employer not found. Please register first.' });
-    if (!employer.emailOtp || employer.emailOtp !== otp)
-      return res.status(400).json({ success: false, message: 'Invalid OTP. Please check and try again.' });
-    if (new Date() > employer.emailOtpExpiry)
-      return res.status(400).json({ success: false, message: 'OTP has expired. Please request a new one.' });
+
+    const cacheResult = otpCache.verify(mobile, otp);
+    if (!cacheResult.valid)
+      return res.status(400).json({ success: false, message: cacheResult.reason });
 
     employer.isVerified      = true;
     employer.isEmailVerified = true;
-    employer.emailOtp        = undefined;
-    employer.emailOtpExpiry  = undefined;
     await employer.save();
 
     const { accessToken, refreshToken } = generateTokens({ id: employer._id, role: 'employer' });
@@ -311,11 +300,8 @@ exports.employerLogin = async (req, res) => {
     if (!employer.isActive)
       return res.status(403).json({ success: false, message: 'Account is disabled. Contact support.' });
 
-    const otp       = generateEmailOTP();
-    const otpExpiry = getEmailOTPExpiry();
-    employer.emailOtp       = otp;
-    employer.emailOtpExpiry = otpExpiry;
-    await employer.save();
+    const otp = generateEmailOTP();
+    otpCache.set(mobile, otp);   // cache only — no DB write
 
     const result = await sendEmailOTP(employer.email, otp, employer.name);
     if (!result.success)
@@ -342,14 +328,10 @@ exports.employerLoginVerify = async (req, res) => {
     const employer = await Employer.findOne({ mobile });
     if (!employer)
       return res.status(404).json({ success: false, message: 'Employer not found' });
-    if (!employer.emailOtp || employer.emailOtp !== otp)
-      return res.status(400).json({ success: false, message: 'Invalid OTP. Please check and try again.' });
-    if (new Date() > employer.emailOtpExpiry)
-      return res.status(400).json({ success: false, message: 'OTP has expired. Please request a new one.' });
 
-    employer.emailOtp       = undefined;
-    employer.emailOtpExpiry = undefined;
-    await employer.save();
+    const cacheResult = otpCache.verify(mobile, otp);
+    if (!cacheResult.valid)
+      return res.status(400).json({ success: false, message: cacheResult.reason });
 
     const token = generateToken({ id: employer._id, role: 'employer' });
     res.json({

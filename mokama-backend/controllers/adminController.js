@@ -9,8 +9,19 @@ const { logAdminAction } = require('../utils/adminLog');
 
 const SAFE_SELECT = '-emailOtp -emailOtpExpiry';
 
+// ── In-memory stats cache — 60 second TTL ──
+// Avoids hitting MongoDB on every admin page load
+let _statsCache = { data: null, expiresAt: 0 };
+
+const invalidateStatsCache = () => { _statsCache.expiresAt = 0; };
+
 exports.getDashboardStats = async (req, res) => {
   try {
+    // Serve from cache if still fresh
+    if (_statsCache.data && Date.now() < _statsCache.expiresAt) {
+      return res.json({ success: true, stats: _statsCache.data, cached: true });
+    }
+
     const [workers, employers, jobs, completedJobs, activeJobs, deletedWorkers, deletedEmployers] = await Promise.all([
       Worker.countDocuments({ isVerified: true, isDeleted: { $ne: true } }),
       Employer.countDocuments({ isVerified: true, isDeleted: { $ne: true } }),
@@ -20,7 +31,9 @@ exports.getDashboardStats = async (req, res) => {
       Worker.countDocuments({ isDeleted: true }),
       Employer.countDocuments({ isDeleted: true }),
     ]);
-    res.json({ success: true, stats: { workers, employers, jobs, completedJobs, activeJobs, deletedWorkers, deletedEmployers } });
+    const stats = { workers, employers, jobs, completedJobs, activeJobs, deletedWorkers, deletedEmployers };
+    _statsCache = { data: stats, expiresAt: Date.now() + 60_000 };  // 60s TTL
+    res.json({ success: true, stats });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
   }
@@ -36,13 +49,22 @@ exports.getAllWorkers = async (req, res) => {
       { mobile: { $regex: search, $options: 'i' } },
       { email: { $regex: search, $options: 'i' } },
     ];
-    const workers = await Worker.find(query)
-      .select(SAFE_SELECT)
-      .sort({ createdAt: -1 })
-      .skip((page - 1) * limit)
-      .limit(parseInt(limit));
-    const total = await Worker.countDocuments(query);
-    res.json({ success: true, workers, total });
+    const [workers, total] = await Promise.all([
+      Worker.find(query)
+        .select(SAFE_SELECT)
+        .sort({ createdAt: -1 })
+        .skip((page - 1) * limit)
+        .limit(parseInt(limit)),
+      Worker.countDocuments(query)
+    ]);
+    res.json({
+      success: true,
+      workers,
+      total,
+      page: parseInt(page),
+      limit: parseInt(limit),
+      totalPages: Math.ceil(total / limit),
+    });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
   }
@@ -57,13 +79,22 @@ exports.getAllEmployers = async (req, res) => {
       { mobile: { $regex: search, $options: 'i' } },
       { email: { $regex: search, $options: 'i' } },
     ];
-    const employers = await Employer.find(query)
-      .select(SAFE_SELECT)
-      .sort({ createdAt: -1 })
-      .skip((page - 1) * limit)
-      .limit(parseInt(limit));
-    const total = await Employer.countDocuments(query);
-    res.json({ success: true, employers, total });
+    const [employers, total] = await Promise.all([
+      Employer.find(query)
+        .select(SAFE_SELECT)
+        .sort({ createdAt: -1 })
+        .skip((page - 1) * limit)
+        .limit(parseInt(limit)),
+      Employer.countDocuments(query)
+    ]);
+    res.json({
+      success: true,
+      employers,
+      total,
+      page: parseInt(page),
+      limit: parseInt(limit),
+      totalPages: Math.ceil(total / limit),
+    });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
   }
@@ -74,14 +105,23 @@ exports.getAllJobs = async (req, res) => {
     const { page = 1, limit = 20, status } = req.query;
     const query = {};
     if (status) query.status = status;
-    const jobs = await Job.find(query)
-      .populate('employer', 'name mobile')
-      .populate('worker', 'name mobile')
-      .sort({ createdAt: -1 })
-      .skip((page - 1) * limit)
-      .limit(parseInt(limit));
-    const total = await Job.countDocuments(query);
-    res.json({ success: true, jobs, total });
+    const [jobs, total] = await Promise.all([
+      Job.find(query)
+        .populate('employer', 'name mobile')
+        .populate('worker', 'name mobile')
+        .sort({ createdAt: -1 })
+        .skip((page - 1) * limit)
+        .limit(parseInt(limit)),
+      Job.countDocuments(query)
+    ]);
+    res.json({
+      success: true,
+      jobs,
+      total,
+      page: parseInt(page),
+      limit: parseInt(limit),
+      totalPages: Math.ceil(total / limit),
+    });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
   }
@@ -168,6 +208,7 @@ exports.deleteUser = async (req, res) => {
       { new: true }
     ).select(SAFE_SELECT);
     if (!user) return res.status(404).json({ success: false, message: 'User not found' });
+    invalidateStatsCache();
     logAdminAction(req.user, 'DELETED_USER', {
       id: user._id, type: userType, name: user.name,
       details: note || 'Deleted by admin'
@@ -221,6 +262,7 @@ exports.toggleUserStatus = async (req, res) => {
     if (!user) return res.status(404).json({ success: false, message: 'User not found' });
     user.isActive = !user.isActive;
     await user.save();
+    invalidateStatsCache();
     logAdminAction(req.user, user.isActive ? 'ACTIVATED_USER' : 'DEACTIVATED_USER', {
       id: user._id, type: userType, name: user.name,
     });

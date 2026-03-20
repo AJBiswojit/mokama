@@ -209,4 +209,21 @@ router.get('/honour-log/:userType/:userId', getHonourLog);
 // Admin activity log
 router.get('/activity-log', getAdminLog);
 
+
+// Hide / unhide a job (soft delete for jobs)
+router.patch('/jobs/:jobId/toggle-hidden', async (req, res) => {
+  try {
+    const Job = require('../models/Job');
+    const job = await Job.findById(req.params.jobId);
+    if (!job) return res.status(404).json({ success: false, message: 'Job not found' });
+    job.isHidden = !job.isHidden;
+    await job.save();
+    logAdminAction(req.user, job.isHidden ? 'HID_JOB' : 'UNHID_JOB', {
+      id: job._id, type: 'job', name: job.title,
+    });
+    res.json({ success: true, isHidden: job.isHidden,
+      message: `Job ${job.isHidden ? 'hidden' : 'unhidden'} successfully` });
+  } catch (err) { res.status(500).json({ success: false, message: err.message }); }
+});
+
 module.exports = router;
