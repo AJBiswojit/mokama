@@ -49,7 +49,7 @@ app.use(helmet({
 
 // 1b. CORS — after helmet
 app.use(cors({
-  origin: process.env.FRONTEND_URL || 'http://localhost:5173',
+  origin: process.env.FRONTEND_URL,
   credentials: true,
 }));
 
