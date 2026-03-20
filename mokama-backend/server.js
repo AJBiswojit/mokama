@@ -100,7 +100,7 @@ app.use('/api/notifications', notificationRoutes);
 
 // ─── Health check ───
 app.get('/api/health', (req, res) => {
-  res.json({ success: true, message: 'MoKama API is running', timestamp: new Date() });
+  res.json({ success: true, message: 'MoKama API is running', version: '1.0.1', timestamp: new Date() });
 });
 
 // ─── 404 ───
