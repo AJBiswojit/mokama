@@ -1,44 +1,33 @@
 const nodemailer = require('nodemailer');
 
-// ── Transporter — explicit port 465 SSL (works on Render free tier) ──
 const transporter = nodemailer.createTransport({
-  host:   'smtp-relay.brevo.com',
-  port:   587,
-  secure: false,
+  service: 'gmail',
   auth: {
     user: process.env.EMAIL_USER,
     pass: process.env.EMAIL_PASS,
   },
-  tls: {
-    rejectUnauthorized: false,
-  },
 });
 
-// ── Generate 6-digit OTP ──
 const generateEmailOTP = () => {
   return Math.floor(100000 + Math.random() * 900000).toString();
 };
 
-// ── Send OTP email ──
 const sendEmailOTP = async (email, otp, name = 'User') => {
   if (process.env.NODE_ENV !== 'production') {
     console.log(`📧 [DEV] Email OTP for ${email}: ${otp}`);
     return { success: true, devOtp: otp };
   }
-
   try {
     await transporter.sendMail({
-      from: process.env.EMAIL_FROM || 'MoKama <noreply@mokama.in>',
-      to: email,
+      from:    process.env.EMAIL_FROM || 'MoKama <noreply@mokama.in>',
+      to:      email,
       subject: 'MoKama — Verify Your Email',
       html: `
         <div style="font-family: Arial, sans-serif; max-width: 480px; margin: 0 auto;
                     background: #0a0a0a; color: #f0f0f0; padding: 32px; border-radius: 16px;">
           <div style="text-align: center; margin-bottom: 24px;">
             <h2 style="color: #f97316; margin: 0;">MoKama</h2>
-            <p style="color: #6b6b6b; font-size: 13px; margin: 4px 0 0 0;">
-              Where Work Meets Trust
-            </p>
+            <p style="color: #6b6b6b; font-size: 13px; margin: 4px 0 0 0;">Where Work Meets Trust</p>
           </div>
           <p style="color: #a3a3a3; font-size: 15px;">Hi ${name},</p>
           <p style="color: #a3a3a3; font-size: 15px;">Your email verification OTP is:</p>
@@ -48,10 +37,10 @@ const sendEmailOTP = async (email, otp, name = 'User') => {
                          letter-spacing: 12px;">${otp}</span>
           </div>
           <p style="color: #6b6b6b; font-size: 13px;">
-            ⏱ This OTP is valid for <strong style="color: #a3a3a3;">5 minutes</strong>.
+            ⏱ Valid for <strong style="color: #a3a3a3;">5 minutes</strong>.
           </p>
           <p style="color: #6b6b6b; font-size: 13px;">
-            🔒 Do not share this OTP with anyone. MoKama will never ask for your OTP.
+            🔒 Do not share this OTP with anyone.
           </p>
           <hr style="border: none; border-top: 1px solid #2a2a2a; margin: 24px 0;" />
           <p style="color: #3a3a3a; font-size: 12px; text-align: center; margin: 0;">
@@ -67,7 +56,6 @@ const sendEmailOTP = async (email, otp, name = 'User') => {
   }
 };
 
-// ── Generic email sender ──
 const sendEmail = async (to, subject, html) => {
   if (process.env.NODE_ENV !== 'production') {
     console.log(`📧 [DEV] Email to ${to}: ${subject}`);
@@ -76,9 +64,7 @@ const sendEmail = async (to, subject, html) => {
   try {
     await transporter.sendMail({
       from: process.env.EMAIL_FROM || 'MoKama <noreply@mokama.in>',
-      to,
-      subject,
-      html,
+      to, subject, html,
     });
     return { success: true };
   } catch (err) {
@@ -87,8 +73,4 @@ const sendEmail = async (to, subject, html) => {
   }
 };
 
-module.exports = {
-  generateEmailOTP,
-  sendEmailOTP,
-  sendEmail,
-};
+module.exports = { generateEmailOTP, sendEmailOTP, sendEmail };
