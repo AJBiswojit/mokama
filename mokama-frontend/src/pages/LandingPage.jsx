@@ -1,39 +1,28 @@
 import { useState, useRef } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import {
-  Menu, X, ChevronDown, Briefcase, Users, Shield, Star,
-  MapPin, PhoneCall, CheckCircle, ArrowRight, Zap, Award, ChevronRight
+  Menu, X, ChevronDown, HardHat, Building2, Star, Shield,
+  CheckCircle, Users, Briefcase, Zap, ChevronRight
 } from 'lucide-react'
 
-function Dropdown({ label, items }) {
+function NavDropdown({ label, items }) {
   const [open, setOpen] = useState(false)
-  const closeTimer = useRef(null)
-
-  const handleMouseEnter = () => {
-    // Cancel any pending close
-    if (closeTimer.current) clearTimeout(closeTimer.current)
-    setOpen(true)
-  }
-
-  const handleMouseLeave = () => {
-    // Delay closing so mouse can travel from button to menu
-    closeTimer.current = setTimeout(() => setOpen(false), 150)
-  }
+  const timer = useRef(null)
+  const enter = () => { clearTimeout(timer.current); setOpen(true) }
+  const leave = () => { timer.current = setTimeout(() => setOpen(false), 150) }
 
   return (
-    <div className="relative" onMouseEnter={handleMouseEnter} onMouseLeave={handleMouseLeave}>
-      <button className="flex items-center gap-1 text-sm font-medium text-[#a3a3a3] hover:text-[#f97316] transition-colors px-3 py-2 rounded-xl hover:bg-[#1a1a1a]">
-        {label} <ChevronDown size={13} className={`transition-transform ${open ? 'rotate-180' : ''}`} />
+    <div className="relative" onMouseEnter={enter} onMouseLeave={leave}>
+      <button className="flex items-center gap-1 px-4 py-2 border border-[#2a2a2a] text-sm font-semibold text-white rounded-xl hover:border-[#f97316] hover:text-[#f97316] transition-all bg-[#141414]">
+        {label} <ChevronDown size={13} className={`transition-transform duration-200 ${open ? 'rotate-180' : ''}`} />
       </button>
       {open && (
-        <div className="absolute top-full left-0 w-44 bg-[#1a1a1a] border border-[#2a2a2a] rounded-2xl shadow-modal overflow-hidden animate-fade-in z-50"
-          style={{ paddingTop: '6px', marginTop: '-2px' }}>
-          {/* Invisible bridge fills the gap between button and menu */}
+        <div className="absolute top-full right-0 mt-1 w-48 bg-[#141414] border border-[#2a2a2a] rounded-2xl shadow-xl overflow-hidden z-50">
           <div className="absolute -top-2 left-0 right-0 h-3 bg-transparent" />
           {items.map(item => (
             <Link key={item.label} to={item.href}
-              className="flex items-center gap-2.5 px-4 py-3 text-sm text-[#a3a3a3] hover:bg-[#212121] hover:text-[#f97316] transition-colors">
-              {item.icon}{item.label}
+              className="flex items-center gap-3 px-4 py-3 text-sm text-[#a3a3a3] hover:bg-[#1e1e1e] hover:text-[#f97316] transition-colors">
+              {item.icon}<span>{item.label}</span>
             </Link>
           ))}
         </div>
@@ -44,273 +33,439 @@ function Dropdown({ label, items }) {
 
 export default function LandingPage() {
   const [mobileOpen, setMobileOpen] = useState(false)
-  const navigate = useNavigate()
 
   return (
     <div className="min-h-screen bg-[#0a0a0a] text-[#f0f0f0] font-sans">
 
       {/* ── Navbar ── */}
-      <header className="sticky top-0 z-50 bg-[#0a0a0a]/90 backdrop-blur-xl border-b border-[#1e1e1e]">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 flex items-center justify-between h-16">
-          <Link to="/" className="flex items-center gap-2">
-            <img src="/logo.png" alt="MoKama Logo"
-              className="h-10 w-10 rounded-xl object-cover"
-              style={{ imageRendering: 'crisp-edges' }} />
-            <span className="font-bold text-xl text-white tracking-tight">MoKama</span>
+      <header className="sticky top-0 z-50 bg-[#0a0a0a]/95 backdrop-blur-xl border-b border-[#1e1e1e]">
+        <div className="max-w-6xl mx-auto px-4 flex items-center justify-between h-16">
+
+          {/* Logo */}
+          <Link to="/" className="flex items-center gap-2 shrink-0">
+            <img src="/logo.png" alt="MoKama" className="h-9 w-9 rounded-xl object-cover" />
+            <div>
+              <div className="font-bold text-base text-white leading-none">MoKama</div>
+              <div className="text-[10px] text-[#f97316] font-medium hidden sm:block">Kaam Ko Mukam Tak</div>
+            </div>
           </Link>
 
-          <nav className="hidden md:flex items-center gap-1">
-            {[['About','#about'],['How It Works','#how'],['Contact','#contact']].map(([l,h]) => (
-              <a key={l} href={h} className="text-sm font-medium text-[#a3a3a3] hover:text-[#f97316] px-3 py-2 rounded-xl hover:bg-[#1a1a1a] transition-all">{l}</a>
+          {/* Desktop center nav */}
+          <nav className="hidden lg:flex items-center gap-1">
+            {[['Home','#'],['About Us','#about'],['Contact','#contact']].map(([l,h]) => (
+              <a key={l} href={h} className="text-sm font-medium text-[#a3a3a3] hover:text-white px-3 py-2 rounded-xl hover:bg-[#1a1a1a] transition-all">{l}</a>
             ))}
           </nav>
 
+          {/* Desktop right buttons */}
           <div className="hidden md:flex items-center gap-2">
-            <Dropdown label="Login" items={[
-              { label: 'Worker',   href: '/worker/login',   icon: <Users size={13} /> },
-              { label: 'Employer', href: '/employer/login', icon: <Briefcase size={13} /> },
-              { label: 'Admin',    href: '/admin/login',    icon: <Shield size={13} /> },
+            <NavDropdown label="Sign Up" items={[
+              { label:'Worker',   href:'/worker/register',   icon:<HardHat size={14} className="text-[#f97316]" /> },
+              { label:'Employer', href:'/employer/register', icon:<Building2 size={14} className="text-[#f97316]" /> },
             ]} />
-            <Dropdown label="Sign Up" items={[
-              { label: 'Worker',   href: '/worker/register',   icon: <Users size={13} /> },
-              { label: 'Employer', href: '/employer/register', icon: <Briefcase size={13} /> },
+            <NavDropdown label="Log In" items={[
+              { label:'Worker',   href:'/worker/login',   icon:<HardHat size={14} className="text-[#f97316]" /> },
+              { label:'Employer', href:'/employer/login', icon:<Building2 size={14} className="text-[#f97316]" /> },
+              { label:'Admin',    href:'/admin/login',    icon:<Shield size={14} className="text-violet-400" /> },
             ]} />
           </div>
 
-          <button className="md:hidden p-2 rounded-xl hover:bg-[#1a1a1a]" onClick={() => setMobileOpen(!mobileOpen)}>
+          {/* Mobile hamburger */}
+          <button className="md:hidden p-2 rounded-xl hover:bg-[#1a1a1a] transition-all"
+            onClick={() => setMobileOpen(!mobileOpen)}>
             {mobileOpen ? <X size={20} /> : <Menu size={20} />}
           </button>
         </div>
 
+        {/* Mobile menu */}
         {mobileOpen && (
-          <div className="md:hidden border-t border-[#1e1e1e] bg-[#0a0a0a] animate-slide-up px-4 py-4 space-y-1">
-            {[['About','#about'],['How It Works','#how'],['Contact','#contact']].map(([l,h]) => (
-              <a key={l} href={h} className="block py-2.5 px-3 text-sm font-medium text-[#a3a3a3] hover:text-[#f97316] rounded-xl hover:bg-[#1a1a1a]">{l}</a>
+          <div className="md:hidden border-t border-[#1e1e1e] bg-[#0d0d0d] px-4 py-4 space-y-2">
+            {[['Home','#'],['About Us','#about'],['Contact','#contact']].map(([l,h]) => (
+              <a key={l} href={h}
+                className="block py-2.5 px-3 text-sm text-[#a3a3a3] hover:text-white rounded-xl hover:bg-[#1a1a1a]"
+                onClick={() => setMobileOpen(false)}>{l}</a>
             ))}
-            <hr className="border-[#1e1e1e] my-2" />
-            <div className="grid grid-cols-2 gap-2 pt-1">
-              <Link to="/worker/login"      className="btn-secondary justify-center text-xs py-2">Worker Login</Link>
-              <Link to="/employer/login"    className="btn-secondary justify-center text-xs py-2">Employer Login</Link>
-              <Link to="/worker/register"   className="btn-primary justify-center text-xs py-2">Worker Sign Up</Link>
-              <Link to="/employer/register" className="btn-primary justify-center text-xs py-2">Employer Sign Up</Link>
+            <hr className="border-[#1e1e1e] !my-3" />
+            <div className="grid grid-cols-2 gap-2">
+              <Link to="/worker/register"   onClick={() => setMobileOpen(false)}
+                className="flex items-center justify-center gap-1.5 py-2.5 bg-[#f97316] text-white font-bold rounded-xl text-xs hover:bg-[#fb923c] transition-all">
+                <HardHat size={13} /> Worker Sign Up
+              </Link>
+              <Link to="/employer/register" onClick={() => setMobileOpen(false)}
+                className="flex items-center justify-center gap-1.5 py-2.5 bg-[#141414] border border-[#2a2a2a] text-white font-semibold rounded-xl text-xs hover:border-[#f97316]/40 transition-all">
+                <Building2 size={13} /> Employer Sign Up
+              </Link>
+              <Link to="/worker/login"   onClick={() => setMobileOpen(false)}
+                className="flex items-center justify-center gap-1.5 py-2.5 bg-[#141414] border border-[#2a2a2a] text-[#a3a3a3] rounded-xl text-xs hover:text-white transition-all">
+                Worker Login
+              </Link>
+              <Link to="/employer/login" onClick={() => setMobileOpen(false)}
+                className="flex items-center justify-center gap-1.5 py-2.5 bg-[#141414] border border-[#2a2a2a] text-[#a3a3a3] rounded-xl text-xs hover:text-white transition-all">
+                Employer Login
+              </Link>
             </div>
+            <Link to="/admin/login" onClick={() => setMobileOpen(false)}
+              className="flex items-center justify-center gap-2 w-full py-2.5 text-xs text-violet-400 border border-violet-500/20 rounded-xl hover:bg-violet-500/10 transition-all">
+              <Shield size={12} /> Admin Login
+            </Link>
           </div>
         )}
       </header>
 
       {/* ── Hero ── */}
-      <section className="relative overflow-hidden pt-24 pb-32">
-        {/* Background glows */}
+      <section className="relative overflow-hidden px-4 pt-12 pb-8">
         <div className="absolute inset-0 pointer-events-none">
-          <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[700px] h-[400px] bg-[#f97316]/5 rounded-full blur-3xl" />
-          <div className="absolute top-20 right-0 w-80 h-80 bg-[#f97316]/8 rounded-full blur-3xl" />
-          <div className="absolute bottom-0 left-0 w-64 h-64 bg-[#f97316]/5 rounded-full blur-3xl" />
+          <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[400px] sm:w-[600px] h-[350px] bg-[#f97316]/6 rounded-full blur-3xl" />
+        </div>
+        <div className="relative max-w-3xl mx-auto text-center mb-10">
+          <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-[#f97316]/10 border border-[#f97316]/20 text-[#f97316] rounded-full text-xs font-bold mb-5">
+            <Zap size={11} /> India's Daily Wage Platform · Free to Join
+          </div>
+          <h1 className="text-3xl sm:text-5xl font-extrabold text-white leading-tight mb-4 tracking-tight">
+            Connecting <span className="text-[#f97316]">Workers</span> &{' '}
+            <span className="text-[#f97316]">Employers</span> Across India
+          </h1>
+          <p className="text-[#a3a3a3] text-base sm:text-lg mb-1">
+            MoKama connects daily wage workers and employers across rural and semi-urban India
+          </p>
+          <p className="text-[#6b6b6b] text-sm">Transparently · Reliably · Without Middlemen</p>
         </div>
 
-        <div className="relative max-w-6xl mx-auto px-4 sm:px-6 grid lg:grid-cols-2 gap-14 items-center">
-          <div className="animate-slide-up">
-            <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-[#f97316]/10 border border-[#f97316]/20 text-[#f97316] rounded-full text-xs font-semibold mb-6">
-              <Zap size={11} /> Digital Employment Platform · India
+        {/* ── Two Big Cards ── */}
+        <div className="max-w-4xl mx-auto grid grid-cols-1 sm:grid-cols-2 gap-5">
+
+          {/* Worker Card */}
+          <div className="bg-[#141414] border-2 border-[#2a2a2a] rounded-3xl overflow-hidden hover:border-[#f97316]/40 transition-all duration-300">
+            <div className="relative h-52 sm:h-64 bg-gradient-to-br from-[#f97316]/20 via-[#1a1a1a] to-[#0a0a0a] flex items-center justify-center">
+              <div className="text-center px-4">
+                <div className="text-7xl sm:text-9xl mb-2 select-none">👷</div>
+                <div className="text-[#f97316] font-bold text-base sm:text-lg">Daily Wage Worker</div>
+                <div className="text-[#6b6b6b] text-xs sm:text-sm">Mason · Carpenter · Plumber & more</div>
+              </div>
+              <div className="absolute top-3 right-3 bg-[#0a0a0a]/80 border border-[#f97316]/30 rounded-xl px-2.5 py-1.5 flex items-center gap-1.5">
+                <Star size={11} className="text-[#f97316] fill-[#f97316]" />
+                <span className="text-xs text-white font-semibold">Verified</span>
+              </div>
             </div>
-            <h1 className="text-5xl sm:text-6xl font-extrabold text-white leading-[1.08] tracking-tight mb-6">
-              Where Work<br />
-              <span className="text-[#f97316]">Meets Trust</span>
-            </h1>
-            <p className="text-lg text-[#a3a3a3] leading-relaxed mb-8 max-w-lg">
-              Connecting daily wage workers and employers across rural and semi-urban India — transparently, reliably, without middlemen.
-            </p>
-            <div className="flex flex-wrap gap-3">
-              <button onClick={() => navigate('/worker/register')}
-                className="btn-primary px-7 py-3.5 text-base shadow-glow">
-                <Users size={18} /> Find Work
-              </button>
-              <button onClick={() => navigate('/employer/register')}
-                className="btn-secondary px-7 py-3.5 text-base">
-                <Briefcase size={18} /> Find Workers <ArrowRight size={15} />
-              </button>
-            </div>
-            <div className="flex items-center gap-8 mt-10 pt-8 border-t border-[#1e1e1e]">
-              {[['2000+','Workers Registered'],['500+','Employers'],['98%','Satisfaction']].map(([n,l]) => (
-                <div key={l}>
-                  <div className="text-2xl font-extrabold text-[#f97316]">{n}</div>
-                  <div className="text-xs text-[#6b6b6b] mt-0.5">{l}</div>
-                </div>
-              ))}
+            <div className="p-5 sm:p-6">
+              <h2 className="text-xl sm:text-2xl font-extrabold text-white mb-2">I am a Worker</h2>
+              <p className="text-[#6b6b6b] text-xs sm:text-sm mb-5 leading-relaxed">
+                Register your skills, find nearby jobs, get hired by trusted employers and receive fair payment.
+              </p>
+              <div className="grid grid-cols-2 gap-3">
+                <Link to="/worker/register"
+                  className="flex items-center justify-center gap-1.5 py-3 bg-[#f97316] text-white font-bold rounded-xl hover:bg-[#fb923c] active:scale-95 transition-all text-sm shadow-glow">
+                  <Users size={14} /> Sign Up
+                </Link>
+                <Link to="/worker/login"
+                  className="flex items-center justify-center gap-1.5 py-3 bg-[#1e1e1e] border border-[#2a2a2a] text-white font-semibold rounded-xl hover:border-[#f97316]/40 hover:text-[#f97316] active:scale-95 transition-all text-sm">
+                  Log In
+                </Link>
+              </div>
             </div>
           </div>
 
-          {/* Logo + floating cards */}
-          <div className="relative hidden lg:flex items-center justify-center animate-fade-in">
-            <div className="relative w-full max-w-sm flex items-center justify-center">
-
-              {/* Main logo display */}
-              <div className="relative">
-                <img src="/logo.png" alt="MoKama"
-                  className="w-80 h-80 object-contain drop-shadow-2xl"
-                  style={{ filter: 'drop-shadow(0 0 40px rgba(249,115,22,0.15))' }} />
-
-                {/* Subtle orange glow ring */}
-                <div className="absolute inset-0 rounded-full"
-                  style={{ background: 'radial-gradient(circle, rgba(249,115,22,0.06) 0%, transparent 70%)' }} />
+          {/* Employer Card */}
+          <div className="bg-[#141414] border-2 border-[#2a2a2a] rounded-3xl overflow-hidden hover:border-violet-500/40 transition-all duration-300">
+            <div className="relative h-52 sm:h-64 bg-gradient-to-br from-violet-500/20 via-[#1a1a1a] to-[#0a0a0a] flex items-center justify-center">
+              <div className="text-center px-4">
+                <div className="text-7xl sm:text-9xl mb-2 select-none">🏗️</div>
+                <div className="text-violet-400 font-bold text-base sm:text-lg">Employer / Contractor</div>
+                <div className="text-[#6b6b6b] text-xs sm:text-sm">Construction · Agriculture & more</div>
               </div>
+              <div className="absolute top-3 right-3 bg-[#0a0a0a]/80 border border-violet-500/30 rounded-xl px-2.5 py-1.5 flex items-center gap-1.5">
+                <CheckCircle size={11} className="text-violet-400" />
+                <span className="text-xs text-white font-semibold">Trusted</span>
+              </div>
+            </div>
+            <div className="p-5 sm:p-6">
+              <h2 className="text-xl sm:text-2xl font-extrabold text-white mb-2">I Need Workers</h2>
+              <p className="text-[#6b6b6b] text-xs sm:text-sm mb-5 leading-relaxed">
+                Post your job, find verified workers nearby, hire with confidence and confirm payments transparently.
+              </p>
+              <div className="grid grid-cols-2 gap-3">
+                <Link to="/employer/register"
+                  className="flex items-center justify-center gap-1.5 py-3 bg-violet-600 text-white font-bold rounded-xl hover:bg-violet-500 active:scale-95 transition-all text-sm">
+                  <Briefcase size={14} /> Sign Up
+                </Link>
+                <Link to="/employer/login"
+                  className="flex items-center justify-center gap-1.5 py-3 bg-[#1e1e1e] border border-[#2a2a2a] text-white font-semibold rounded-xl hover:border-violet-500/40 hover:text-violet-400 active:scale-95 transition-all text-sm">
+                  Log In
+                </Link>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
 
-              {/* Floating honour score */}
-              <div className="absolute top-4 -right-2 bg-[#1a1a1a] border border-[#2a2a2a] rounded-2xl p-3.5 flex items-center gap-3 shadow-card-hover">
-                <div className="w-9 h-9 bg-[#f97316]/10 rounded-xl flex items-center justify-center">
-                  <Star size={16} className="text-[#f97316] fill-[#f97316]" />
-                </div>
+      {/* ── Who Can Use ── */}
+      <section className="py-14 bg-[#0d0d0d] px-4">
+        <div className="max-w-5xl mx-auto">
+          <div className="text-center mb-10">
+            <div className="text-xs font-bold text-[#f97316] uppercase tracking-widest mb-2">Who Can Use MoKama?</div>
+            <h2 className="text-2xl sm:text-3xl font-extrabold text-white">Built for India's Workforce</h2>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+
+            {/* Workers */}
+            <div className="bg-[#141414] border border-[#2a2a2a] rounded-3xl p-6 sm:p-8">
+              <div className="flex items-center gap-3 mb-5">
+                <div className="w-12 h-12 bg-[#f97316]/10 border-2 border-[#f97316]/30 rounded-2xl flex items-center justify-center text-2xl">👷</div>
                 <div>
-                  <div className="text-xs text-[#6b6b6b]">Honour Score</div>
-                  <div className="font-bold text-white">92 / 100</div>
+                  <div className="text-lg font-extrabold text-white">For Workers</div>
+                  <div className="text-[#6b6b6b] text-xs">Daily Wage Earners</div>
                 </div>
               </div>
-
-              {/* Floating job card */}
-              <div className="absolute -bottom-2 -right-4 bg-[#1a1a1a] border border-[#2a2a2a] rounded-2xl p-4 shadow-card-hover w-52">
-                <div className="flex items-center gap-2 mb-2">
-                  <div className="w-7 h-7 bg-[#f97316]/10 border border-[#f97316]/20 rounded-lg flex items-center justify-center">
-                    <Briefcase size={13} className="text-[#f97316]" />
+              <div className="space-y-2.5">
+                {[
+                  ['🔨','Mason','Construction Worker'],
+                  ['🪚','Carpenter','Wood & Furniture Work'],
+                  ['🔧','Plumber','Water & Pipe Work'],
+                  ['⚡','Electrician','Electrical Work'],
+                  ['🌾','Farm Worker','Agricultural Labour'],
+                  ['📦','Helper','General Labour'],
+                ].map(([e,l,d]) => (
+                  <div key={l} className="flex items-center gap-3 py-2 border-b border-[#1e1e1e] last:border-0">
+                    <span className="text-lg">{e}</span>
+                    <div className="min-w-0">
+                      <span className="text-white font-semibold text-sm">{l}</span>
+                      <span className="text-[#6b6b6b] text-xs ml-1.5 hidden sm:inline">· {d}</span>
+                    </div>
                   </div>
-                  <div>
-                    <div className="text-xs font-bold text-white">Mason Required</div>
-                    <div className="text-xs text-[#6b6b6b] flex items-center gap-0.5"><MapPin size={9} /> Bhubaneswar</div>
-                  </div>
-                </div>
-                <div className="flex items-center justify-between text-xs mt-2">
-                  <span className="text-[#6b6b6b]">₹650/day</span>
-                  <span className="px-2 py-0.5 bg-emerald-500/10 text-emerald-400 rounded-full text-xs border border-emerald-500/20">Open</span>
-                </div>
+                ))}
               </div>
+              <Link to="/worker/register"
+                className="w-full mt-5 flex items-center justify-center gap-2 bg-[#f97316] text-white font-bold py-3 rounded-2xl hover:bg-[#fb923c] transition-all text-sm">
+                <HardHat size={15} /> Register as Worker — Free
+              </Link>
+            </div>
 
-              {/* Floating verified */}
-              <div className="absolute top-10 -left-6 bg-[#1a1a1a] border border-[#2a2a2a] rounded-2xl px-4 py-2.5 flex items-center gap-2 shadow-card-hover">
-                <CheckCircle size={16} className="text-[#f97316]" />
-                <span className="text-sm font-semibold text-white">OTP Verified</span>
+            {/* Employers */}
+            <div className="bg-[#141414] border border-[#2a2a2a] rounded-3xl p-6 sm:p-8">
+              <div className="flex items-center gap-3 mb-5">
+                <div className="w-12 h-12 bg-violet-500/10 border-2 border-violet-500/30 rounded-2xl flex items-center justify-center text-2xl">🏗️</div>
+                <div>
+                  <div className="text-lg font-extrabold text-white">For Employers</div>
+                  <div className="text-[#6b6b6b] text-xs">Contractors & Business Owners</div>
+                </div>
               </div>
+              <div className="space-y-2.5">
+                {[
+                  ['🏠','House Construction','Residential Building'],
+                  ['🏢','Commercial Projects','Office & Buildings'],
+                  ['🌾','Agricultural Work','Farm & Field Labour'],
+                  ['🏭','Factory Work','Industrial Labour'],
+                  ['🛣️','Road & Civil Work','Infrastructure Projects'],
+                  ['🔧','Home Maintenance','Repairs & Upkeep'],
+                ].map(([e,l,d]) => (
+                  <div key={l} className="flex items-center gap-3 py-2 border-b border-[#1e1e1e] last:border-0">
+                    <span className="text-lg">{e}</span>
+                    <div className="min-w-0">
+                      <span className="text-white font-semibold text-sm">{l}</span>
+                      <span className="text-[#6b6b6b] text-xs ml-1.5 hidden sm:inline">· {d}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <Link to="/employer/register"
+                className="w-full mt-5 flex items-center justify-center gap-2 bg-[#141414] border-2 border-violet-500/40 text-violet-400 font-bold py-3 rounded-2xl hover:bg-violet-500/10 transition-all text-sm">
+                <Building2 size={15} /> Register as Employer — Free
+              </Link>
             </div>
           </div>
         </div>
       </section>
 
       {/* ── How It Works ── */}
-      <section id="how" className="py-24 bg-[#0d0d0d]">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6">
-          <div className="text-center mb-16">
-            <div className="text-xs font-bold text-[#f97316] uppercase tracking-[0.2em] mb-3">Simple Process</div>
-            <h2 className="text-4xl font-extrabold text-white tracking-tight">How It Works</h2>
-            <p className="mt-3 text-[#6b6b6b] max-w-md mx-auto">Three steps to connect talent with opportunity</p>
+      <section id="how" className="py-14 bg-[#0a0a0a] px-4">
+        <div className="max-w-5xl mx-auto">
+          <div className="text-center mb-10">
+            <div className="text-xs font-bold text-[#f97316] uppercase tracking-widest mb-2">Simple Process</div>
+            <h2 className="text-2xl sm:text-3xl font-extrabold text-white">How MoKama Works?</h2>
+            <p className="text-[#6b6b6b] mt-1 text-sm">Just 3 Easy Steps</p>
           </div>
 
-          <div className="grid md:grid-cols-3 gap-6">
-            {[
-              { n:'01', icon:<Users size={22} className="text-[#f97316]" />, title:'Worker Registration', desc:'Workers sign up with skills, experience, and location. OTP verification ensures 100% authenticity.' },
-              { n:'02', icon:<Briefcase size={22} className="text-[#fb923c]" />, title:'Employer Posts Job', desc:'Employers post jobs with wage, location and requirements. Workers are matched and notified instantly.' },
-              { n:'03', icon:<CheckCircle size={22} className="text-[#fbbf24]" />, title:'Work & Payment Done', desc:'Both parties confirm work completion and payment. Honour scores are automatically updated.' },
-            ].map((item, i) => (
-              <div key={i} className="group bg-[#141414] border border-[#2a2a2a] rounded-2xl p-7 hover:border-[#f97316]/30 hover:shadow-glow transition-all duration-200 relative overflow-hidden">
-                <div className="absolute top-4 right-5 text-6xl font-black text-[#1e1e1e] group-hover:text-[#f97316]/5 transition-colors select-none">{item.n}</div>
-                <div className="relative">
-                  <div className="w-12 h-12 bg-[#f97316]/10 border border-[#f97316]/20 rounded-2xl flex items-center justify-center mb-5">{item.icon}</div>
-                  <h3 className="font-bold text-white text-lg mb-2">{item.title}</h3>
-                  <p className="text-sm text-[#6b6b6b] leading-relaxed">{item.desc}</p>
+          {/* Worker Steps */}
+          <div className="mb-8">
+            <div className="flex items-center gap-2.5 mb-4">
+              <div className="w-8 h-8 bg-[#f97316]/10 border border-[#f97316]/30 rounded-xl flex items-center justify-center text-base">👷</div>
+              <div className="font-bold text-white text-sm">For Workers</div>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              {[
+                { n:'1', e:'📱', t:'Register', d:'Sign up with your mobile number and email. Verify with OTP.', c:'bg-[#f97316]' },
+                { n:'2', e:'🔔', t:'Get Notified', d:'Receive alerts when a nearby job matches your skill and location.', c:'bg-[#fb923c]' },
+                { n:'3', e:'💰', t:'Work & Get Paid', d:'Accept the job, complete the work, confirm payment safely on the app.', c:'bg-[#fbbf24]' },
+              ].map((s,i) => (
+                <div key={i} className="relative bg-[#141414] border border-[#2a2a2a] rounded-2xl p-5">
+                  <div className={`w-7 h-7 ${s.c} rounded-full flex items-center justify-center text-white font-black text-xs mb-3`}>{s.n}</div>
+                  <div className="text-2xl mb-2">{s.e}</div>
+                  <div className="font-bold text-white text-sm mb-1">{s.t}</div>
+                  <div className="text-xs text-[#6b6b6b] leading-relaxed">{s.d}</div>
+                  {i < 2 && <div className="hidden sm:block absolute -right-2.5 top-1/2 -translate-y-1/2 text-[#f97316] z-10"><ChevronRight size={18} /></div>}
                 </div>
-              </div>
-            ))}
+              ))}
+            </div>
+          </div>
+
+          {/* Employer Steps */}
+          <div>
+            <div className="flex items-center gap-2.5 mb-4">
+              <div className="w-8 h-8 bg-violet-500/10 border border-violet-500/30 rounded-xl flex items-center justify-center text-base">🏗️</div>
+              <div className="font-bold text-white text-sm">For Employers</div>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              {[
+                { n:'1', e:'📝', t:'Post a Job', d:'Register and post your job with required trade, wage per day, and location.', c:'bg-violet-600' },
+                { n:'2', e:'🔍', t:'Find Workers', d:'Browse verified available workers nearby. Check their honour score.', c:'bg-violet-500' },
+                { n:'3', e:'✅', t:'Hire & Pay', d:'Send a job request, confirm work started and completed, then confirm payment.', c:'bg-violet-400' },
+              ].map((s,i) => (
+                <div key={i} className="relative bg-[#141414] border border-[#2a2a2a] rounded-2xl p-5">
+                  <div className={`w-7 h-7 ${s.c} rounded-full flex items-center justify-center text-white font-black text-xs mb-3`}>{s.n}</div>
+                  <div className="text-2xl mb-2">{s.e}</div>
+                  <div className="font-bold text-white text-sm mb-1">{s.t}</div>
+                  <div className="text-xs text-[#6b6b6b] leading-relaxed">{s.d}</div>
+                  {i < 2 && <div className="hidden sm:block absolute -right-2.5 top-1/2 -translate-y-1/2 text-violet-400 z-10"><ChevronRight size={18} /></div>}
+                </div>
+              ))}
+            </div>
           </div>
         </div>
       </section>
 
-      {/* ── Trust Features ── */}
-      <section id="about" className="py-24 bg-[#0a0a0a]">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6">
-          <div className="text-center mb-16">
-            <div className="text-xs font-bold text-[#f97316] uppercase tracking-[0.2em] mb-3">Why MoKama</div>
-            <h2 className="text-4xl font-extrabold text-white tracking-tight">Built on Trust</h2>
+      {/* ── Why MoKama ── */}
+      <section id="about" className="py-14 bg-[#0d0d0d] px-4">
+        <div className="max-w-5xl mx-auto">
+          <div className="text-center mb-10">
+            <div className="text-xs font-bold text-[#f97316] uppercase tracking-widest mb-2">Why MoKama?</div>
+            <h2 className="text-2xl sm:text-3xl font-extrabold text-white">Built on Trust</h2>
           </div>
-          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-5">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
             {[
-              { icon:<Award size={20} className="text-[#f97316]" />, title:'Honour Score System', desc:'Dynamic trust scores that reward reliable behaviour and penalise dishonesty — for both sides.' },
-              { icon:<PhoneCall size={20} className="text-[#fb923c]" />, title:'OTP Verification', desc:'Mobile-number authentication ensures every single user is who they claim to be.' },
-              { icon:<CheckCircle size={20} className="text-[#fbbf24]" />, title:'Payment Confirmation', desc:'Double-sided confirmation protects workers from non-payment and employers from disputes.' },
-              { icon:<Shield size={20} className="text-[#f0a050]" />, title:'Admin Monitoring', desc:'Real-time oversight with dispute resolution, force-close capabilities, and user controls.' },
-            ].map((f, i) => (
-              <div key={i} className="bg-[#141414] border border-[#2a2a2a] rounded-2xl p-6 hover:border-[#f97316]/25 hover:shadow-glow transition-all duration-200">
-                <div className="w-11 h-11 bg-[#f97316]/10 border border-[#f97316]/15 rounded-xl flex items-center justify-center mb-4">{f.icon}</div>
-                <h3 className="font-bold text-white mb-2">{f.title}</h3>
-                <p className="text-sm text-[#6b6b6b] leading-relaxed">{f.desc}</p>
+              { e:'⭐', t:'Honour Score',      d:'Every worker and employer has a live trust rating based on their behaviour.' },
+              { e:'🔒', t:'OTP Verified',      d:'All users are verified via email OTP. Every profile is real and authenticated.' },
+              { e:'💰', t:'Safe Payment',      d:'Payment confirmed by both parties — no disputes, no cheating.' },
+              { e:'🛡️', t:'Admin Protection', d:'Dedicated admin monitors the platform and resolves disputes in real time.' },
+            ].map((f,i) => (
+              <div key={i} className="bg-[#141414] border border-[#2a2a2a] rounded-2xl p-4 sm:p-6 text-center hover:border-[#f97316]/25 transition-all">
+                <div className="text-3xl sm:text-4xl mb-3">{f.e}</div>
+                <div className="font-bold text-white text-xs sm:text-sm mb-1.5">{f.t}</div>
+                <p className="text-xs text-[#6b6b6b] leading-relaxed hidden sm:block">{f.d}</p>
               </div>
             ))}
+          </div>
+
+          {/* Honour Score explainer */}
+          <div className="mt-6 bg-[#141414] border border-[#f97316]/20 rounded-3xl p-5 sm:p-8">
+            <div className="text-lg font-bold text-white mb-2">⭐ What is the Honour Score?</div>
+            <p className="text-sm text-[#a3a3a3] leading-relaxed mb-5">
+              Every worker and employer on MoKama has a score out of 100. It goes up when you do good work and goes down when you behave badly. A higher score means more trust and more opportunities.
+            </p>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              {[
+                { r:'85-100', l:'Excellent', c:'text-emerald-400', b:'bg-emerald-500/10 border-emerald-500/20' },
+                { r:'70-84',  l:'Good',      c:'text-lime-400',    b:'bg-lime-500/10 border-lime-500/20' },
+                { r:'50-69',  l:'Average',   c:'text-amber-400',   b:'bg-amber-500/10 border-amber-500/20' },
+                { r:'0-49',   l:'Poor',      c:'text-red-400',     b:'bg-red-500/10 border-red-500/20' },
+              ].map(s => (
+                <div key={s.r} className={`border rounded-2xl px-3 py-3 text-center ${s.b}`}>
+                  <div className={`text-base font-black ${s.c}`}>{s.r}</div>
+                  <div className={`text-xs font-bold ${s.c}`}>{s.l}</div>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
       </section>
 
-      {/* ── CTA ── */}
-      <section className="py-24 bg-[#0d0d0d] relative overflow-hidden">
+      {/* ── Final CTA ── */}
+      <section className="py-16 bg-[#0a0a0a] px-4 relative overflow-hidden">
         <div className="absolute inset-0 pointer-events-none">
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[300px] bg-[#f97316]/6 rounded-full blur-3xl" />
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] h-[250px] bg-[#f97316]/5 rounded-full blur-3xl" />
         </div>
-        <div className="relative max-w-3xl mx-auto px-4 sm:px-6 text-center">
-          <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-[#f97316]/10 border border-[#f97316]/20 text-[#f97316] rounded-full text-xs font-semibold mb-6">
-            <Zap size={11} /> Join Today — It's Free
-          </div>
-          <h2 className="text-4xl sm:text-5xl font-extrabold text-white mb-4 tracking-tight">
-            Start Your Journey Today
-          </h2>
-          <p className="text-[#a3a3a3] text-lg mb-10 max-w-xl mx-auto">
-            Join thousands of workers and employers on India's most trusted daily wage platform.
-          </p>
-          <div className="flex flex-wrap justify-center gap-4">
+        <div className="relative max-w-xl mx-auto text-center">
+          <div className="text-4xl mb-5">🤝</div>
+          <h2 className="text-2xl sm:text-4xl font-extrabold text-white mb-2">Start Your Journey Today</h2>
+          <p className="text-[#a3a3a3] text-sm mb-1">Completely Free · No Commission · No Middlemen</p>
+          <p className="text-[#6b6b6b] text-xs mb-8">Join thousands of workers and employers on India's most trusted daily wage platform.</p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-6">
             <Link to="/worker/register"
-              className="inline-flex items-center gap-2 px-8 py-3.5 bg-[#f97316] text-white font-bold rounded-xl hover:bg-[#fb923c] transition-all shadow-glow text-base">
-              <Users size={18} /> Register as Worker
+              className="flex items-center justify-center gap-3 px-5 py-4 bg-[#f97316] text-white font-bold rounded-2xl hover:bg-[#fb923c] transition-all text-sm">
+              <span className="text-xl">👷</span>
+              <div className="text-left">
+                <div>I am a Worker</div>
+                <div className="text-xs text-white/70 font-normal">Register Free</div>
+              </div>
             </Link>
             <Link to="/employer/register"
-              className="inline-flex items-center gap-2 px-8 py-3.5 bg-[#141414] border border-[#f97316]/30 text-[#f97316] font-bold rounded-xl hover:bg-[#f97316]/10 transition-all text-base">
-              <Briefcase size={18} /> Register as Employer <ChevronRight size={16} />
+              className="flex items-center justify-center gap-3 px-5 py-4 bg-[#141414] border-2 border-[#f97316]/40 text-white font-bold rounded-2xl hover:bg-[#f97316]/10 transition-all text-sm">
+              <span className="text-xl">🏗️</span>
+              <div className="text-left">
+                <div>I Need Workers</div>
+                <div className="text-xs text-[#6b6b6b] font-normal">Register Free</div>
+              </div>
             </Link>
           </div>
+          <p className="text-[#6b6b6b] text-xs">
+            Already have an account?{' '}
+            <Link to="/worker/login"   className="text-[#f97316] font-semibold hover:underline">Worker Login</Link>
+            {' · '}
+            <Link to="/employer/login" className="text-[#f97316] font-semibold hover:underline">Employer Login</Link>
+          </p>
         </div>
       </section>
 
       {/* ── Footer ── */}
-      <footer id="contact" className="bg-[#080808] border-t border-[#1a1a1a] text-[#6b6b6b] py-14">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6">
-          <div className="flex flex-col md:flex-row items-start justify-between gap-10">
+      <footer id="contact" className="bg-[#080808] border-t border-[#1a1a1a] text-[#6b6b6b] py-10 px-4">
+        <div className="max-w-5xl mx-auto">
+          <div className="flex flex-col md:flex-row items-start justify-between gap-8 mb-8">
             <div className="max-w-xs">
-              <div className="flex items-center gap-2.5 mb-4">
-                <img src="/logo.png" alt="MoKama" className="h-10 w-10 rounded-xl object-cover" />
-                <span className="font-bold text-xl text-white">MoKama</span>
+              <div className="flex items-center gap-2.5 mb-3">
+                <img src="/logo.png" alt="MoKama" className="h-9 w-9 rounded-xl object-cover" />
+                <div>
+                  <div className="font-bold text-lg text-white">MoKama</div>
+                  <div className="text-[10px] text-[#f97316]">Kaam Ko Mukam Tak</div>
+                </div>
               </div>
-              <p className="text-sm leading-relaxed">Kaam ko Mukam tak — connecting India's workforce with dignity and trust.</p>
+              <p className="text-xs leading-relaxed">Connecting India's daily wage workforce with dignity, trust, and transparency.</p>
+              <p className="text-xs mt-1.5">Designed for rural employment support</p>
             </div>
-            <div className="flex flex-wrap gap-x-16 gap-y-6">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-x-8 gap-y-6 text-sm w-full md:w-auto">
               <div>
-                <div className="text-white font-semibold mb-3 text-sm">Platform</div>
-                <div className="space-y-2 text-sm">
-                  <div><Link to="/worker/register" className="hover:text-[#f97316] transition-colors">For Workers</Link></div>
-                  <div><Link to="/employer/register" className="hover:text-[#f97316] transition-colors">For Employers</Link></div>
+                <div className="text-white font-semibold mb-2.5 text-sm">Workers</div>
+                <div className="space-y-1.5">
+                  <div><Link to="/worker/register" className="hover:text-[#f97316] transition-colors text-xs">Register</Link></div>
+                  <div><Link to="/worker/login"    className="hover:text-[#f97316] transition-colors text-xs">Login</Link></div>
                 </div>
               </div>
               <div>
-                <div className="text-white font-semibold mb-3 text-sm">Legal</div>
-                <div className="space-y-2 text-sm">
-                  <div><a href="#" className="hover:text-[#f97316] transition-colors">Terms</a></div>
-                  <div><a href="#" className="hover:text-[#f97316] transition-colors">Privacy</a></div>
+                <div className="text-white font-semibold mb-2.5 text-sm">Employers</div>
+                <div className="space-y-1.5">
+                  <div><Link to="/employer/register" className="hover:text-[#f97316] transition-colors text-xs">Register</Link></div>
+                  <div><Link to="/employer/login"    className="hover:text-[#f97316] transition-colors text-xs">Login</Link></div>
                 </div>
               </div>
               <div>
-                <div className="text-white font-semibold mb-3 text-sm">Contact</div>
-                <div className="space-y-2 text-sm">
-                  <div>hello@mokama.in</div>
-                  <div>+91 99999 00000</div>
+                <div className="text-white font-semibold mb-2.5 text-sm">Legal</div>
+                <div className="space-y-1.5">
+                  <div><a href="#about" className="hover:text-[#f97316] transition-colors text-xs">About Us</a></div>
+                  <div><a href="#"      className="hover:text-[#f97316] transition-colors text-xs">Privacy Policy</a></div>
+                </div>
+              </div>
+              <div>
+                <div className="text-white font-semibold mb-2.5 text-sm">Contact</div>
+                <div className="space-y-1.5">
+                  <div className="text-xs">support@mokama.in</div>
+                  <div className="text-xs">Patuli, Odisha, India</div>
+                  <div><Link to="/admin/login" className="hover:text-violet-400 transition-colors text-xs">Admin Login</Link></div>
                 </div>
               </div>
             </div>
           </div>
-          <hr className="border-[#1a1a1a] my-8" />
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-3 text-xs">
-            <span>© 2025 MoKama. All rights reserved.</span>
-            <span className="text-[#f97316] font-medium italic">"Kaam ko Mukam tak"</span>
+          <hr className="border-[#1a1a1a] mb-5" />
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-2 text-xs">
+            <span>© 2026 MoKama — Kaam Ko Mukam Tak. All rights reserved.</span>
+            <span className="text-[#f97316] font-bold italic">"Kaam Ko Mukam Tak"</span>
           </div>
         </div>
       </footer>
