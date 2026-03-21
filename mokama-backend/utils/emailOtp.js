@@ -1,11 +1,16 @@
 const nodemailer = require('nodemailer');
 
-// ── Transporter ──
+// ── Transporter — explicit port 465 SSL (works on Render free tier) ──
 const transporter = nodemailer.createTransport({
-  service: 'gmail',
+  host:   'smtp.gmail.com',
+  port:   465,
+  secure: true,
   auth: {
     user: process.env.EMAIL_USER,
     pass: process.env.EMAIL_PASS,
+  },
+  tls: {
+    rejectUnauthorized: false,
   },
 });
 
@@ -14,7 +19,7 @@ const generateEmailOTP = () => {
   return Math.floor(100000 + Math.random() * 900000).toString();
 };
 
-// ── Send OTP email — used during registration and login ──
+// ── Send OTP email ──
 const sendEmailOTP = async (email, otp, name = 'User') => {
   if (process.env.NODE_ENV !== 'production') {
     console.log(`📧 [DEV] Email OTP for ${email}: ${otp}`);
@@ -62,7 +67,7 @@ const sendEmailOTP = async (email, otp, name = 'User') => {
   }
 };
 
-// ── Generic email sender — used for approval, rejection, job notifications ──
+// ── Generic email sender ──
 const sendEmail = async (to, subject, html) => {
   if (process.env.NODE_ENV !== 'production') {
     console.log(`📧 [DEV] Email to ${to}: ${subject}`);
@@ -77,13 +82,11 @@ const sendEmail = async (to, subject, html) => {
     });
     return { success: true };
   } catch (err) {
-    // Non-fatal — log but never crash the request
     console.error(`Email send failed to ${to}:`, err.message);
     return { success: false, message: err.message };
   }
 };
 
-// Single clean export — no duplicates
 module.exports = {
   generateEmailOTP,
   sendEmailOTP,
