@@ -5,7 +5,7 @@ const REQUIRED_ENV = [
   'MONGO_URI',
   'JWT_SECRET',
   'EMAIL_USER',
-  'EMAIL_PASS',
+  'BREVO_API_KEY',
 ];
 const missing = REQUIRED_ENV.filter(k => !process.env[k]);
 if (missing.length) {
