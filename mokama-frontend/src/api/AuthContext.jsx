@@ -1,5 +1,6 @@
 import axios from 'axios'
-import { createContext, useContext, useState, useEffect, useRef } from 'react'
+import { createContext, useContext, useState, useEffect } from 'react'
+import { connectSocket, disconnectSocket } from '../socket/socket'
 
 const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5000/api'
 
@@ -14,7 +15,7 @@ api.interceptors.request.use(cfg => {
 
 // ── Response interceptor — auto-refresh on 401 ──
 let isRefreshing = false
-let failedQueue  = []   // requests waiting for the new token
+let failedQueue  = []
 
 const processQueue = (error, token = null) => {
   failedQueue.forEach(p => error ? p.reject(error) : p.resolve(token))
@@ -26,19 +27,17 @@ api.interceptors.response.use(
   async err => {
     const original = err.config
 
-    // If 401 and we haven't retried yet
     if (err.response?.status === 401 && !original._retry) {
       const refreshToken = localStorage.getItem('mokama_refresh_token')
 
-      // No refresh token — hard logout
       if (!refreshToken) {
         localStorage.clear()
+        disconnectSocket()
         window.location.href = '/'
         return Promise.reject(err)
       }
 
       if (isRefreshing) {
-        // Queue this request until refresh completes
         return new Promise((resolve, reject) => {
           failedQueue.push({ resolve, reject })
         }).then(token => {
@@ -47,8 +46,8 @@ api.interceptors.response.use(
         })
       }
 
-      original._retry  = true
-      isRefreshing     = true
+      original._retry = true
+      isRefreshing    = true
 
       try {
         const res = await axios.post(`${API_BASE}/auth/refresh`, { refreshToken })
@@ -60,11 +59,16 @@ api.interceptors.response.use(
         api.defaults.headers.common.Authorization = `Bearer ${newAccess}`
         processQueue(null, newAccess)
 
+        // Reconnect socket with new token
+        disconnectSocket()
+        connectSocket(newAccess)
+
         original.headers.Authorization = `Bearer ${newAccess}`
-        return api(original)                   // retry original request
+        return api(original)
       } catch (refreshErr) {
         processQueue(refreshErr, null)
         localStorage.clear()
+        disconnectSocket()
         window.location.href = '/'
         return Promise.reject(refreshErr)
       } finally {
@@ -84,10 +88,14 @@ export function AuthProvider({ children }) {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    const token   = localStorage.getItem('mokama_token')
-    const stored  = localStorage.getItem('mokama_user')
+    const token  = localStorage.getItem('mokama_token')
+    const stored = localStorage.getItem('mokama_user')
     if (token && stored) {
-      try { setUser(JSON.parse(stored)) } catch (_) {}
+      try {
+        setUser(JSON.parse(stored))
+        // Reconnect socket if already logged in (page refresh)
+        connectSocket(token)
+      } catch (_) {}
     }
     setLoading(false)
   }, [])
@@ -99,6 +107,8 @@ export function AuthProvider({ children }) {
       localStorage.setItem('mokama_refresh_token', refreshToken)
     }
     setUser(userData)
+    // ── Connect socket on login ──
+    connectSocket(token)
   }
 
   const logout = () => {
@@ -106,6 +116,8 @@ export function AuthProvider({ children }) {
     localStorage.removeItem('mokama_refresh_token')
     localStorage.removeItem('mokama_user')
     setUser(null)
+    // ── Disconnect socket on logout ──
+    disconnectSocket()
   }
 
   const updateUser = (data) => {

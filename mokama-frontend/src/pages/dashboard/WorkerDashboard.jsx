@@ -12,6 +12,7 @@ import {
 import { formatDate, timeAgo } from '../../utils/honour'
 import StatusBanner from '../../components/StatusBanner'
 import ProfileCompleteness from '../../components/ProfileCompleteness'
+import useSocket from '../../socket/useSocket'
 
 const NAV = [
   { href: '/worker/dashboard', label: 'Dashboard', icon: <LayoutDashboard size={16} /> },
@@ -56,6 +57,13 @@ function Overview() {
     } catch { toast.error('Failed to load dashboard') }
     finally { setLoading(false) }
   }, [])
+
+  useSocket({
+    requestReceived: (data) => {
+      toast.success(`New job request: ${data.jobTitle}`)
+      load() // refresh dashboard stats
+    },
+  })
 
   useEffect(() => { load() }, [load])
 
@@ -127,6 +135,13 @@ function JobRequests() {
     } catch { toast.error('Failed to load requests') }
     finally { setLoading(false) }
   }, [])
+
+  useSocket({
+    requestReceived: (data) => {
+      toast.success(`New request: ${data.jobTitle} — ₹${data.wage}/day`)
+      load() // refresh requests list
+    },
+  })
 
   useEffect(() => { load() }, [load])
 
@@ -229,6 +244,20 @@ function ActiveWork() {
     finally { setLoading(false) }
   }, [])
 
+  useSocket({
+    workStarted: (data) => {
+      toast.success(`Work started confirmed for: ${data.jobTitle}`)
+      setJob(prev => prev ? { ...prev, status: 'WORKING', workStartedAt: data.startedAt } : prev)
+    },
+    paymentConfirmed: (data) => {
+      toast.success(`Payment sent by employer for: ${data.jobTitle}`)
+      load() // refresh job
+      if (data.isCompleted) {
+        toast.success('Job completed! 🎉')
+      }
+    },
+  })
+
   useEffect(() => { load() }, [load])
 
   const action = async (jobId, endpoint, msg) => {
@@ -261,11 +290,10 @@ function ActiveWork() {
             <div key={job._id} className="bg-[#141414] border border-[#2a2a2a] rounded-2xl overflow-hidden hover:border-[#3a3a3a] transition-all">
 
               {/* Status colour bar at top */}
-              <div className={`h-1 w-full ${
-                job.status === 'ACCEPTED'        ? 'bg-violet-500' :
-                job.status === 'WORKING'         ? 'bg-emerald-500' :
-                job.status === 'PAYMENT_PENDING' ? 'bg-[#f97316]' : 'bg-[#2a2a2a]'
-              }`} />
+              <div className={`h-1 w-full ${job.status === 'ACCEPTED' ? 'bg-violet-500' :
+                job.status === 'WORKING' ? 'bg-emerald-500' :
+                  job.status === 'PAYMENT_PENDING' ? 'bg-[#f97316]' : 'bg-[#2a2a2a]'
+                }`} />
 
               <div className="p-5">
                 {/* Header */}
@@ -507,7 +535,7 @@ function WorkerProfile() {
   useEffect(() => {
     api.get('/worker/honour-log')
       .then(r => setHonourLogs(r.data.logs || []))
-      .catch(() => {})
+      .catch(() => { })
       .finally(() => setLogsLoading(false))
   }, [])
 
@@ -613,7 +641,7 @@ function Notifications() {
   useEffect(() => {
     api.get('/notifications').then(r => {
       setNotifications(r.data.notifications || [])
-      api.patch('/notifications/mark-read').catch(() => {})
+      api.patch('/notifications/mark-read').catch(() => { })
     }).catch(() => toast.error('Failed to load')).finally(() => setLoading(false))
   }, [])
 

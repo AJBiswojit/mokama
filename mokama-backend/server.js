@@ -1,6 +1,6 @@
 require('dotenv').config();
 
-// ─── Fix 2: .env validation — fail fast before anything loads ───
+// ─── Env validation — fail fast before anything loads ───
 const REQUIRED_ENV = [
   'MONGO_URI',
   'JWT_SECRET',
@@ -14,13 +14,19 @@ if (missing.length) {
   process.exit(1);
 }
 
-const express        = require('express');
-const cors           = require('cors');
-const mongoose       = require('mongoose');
-const rateLimit      = require('express-rate-limit');
-const helmet         = require('helmet');         // Fix 1a
-const mongoSanitize  = require('express-mongo-sanitize'); // Fix 1b
-const xss            = require('xss-clean');      // Fix 1c
+const express       = require('express');
+const http          = require('http');            // ← needed for Socket.IO
+const { Server }    = require('socket.io');       // ← Socket.IO
+const cors          = require('cors');
+const mongoose      = require('mongoose');
+const rateLimit     = require('express-rate-limit');
+const helmet        = require('helmet');
+const mongoSanitize = require('express-mongo-sanitize');
+const xss           = require('xss-clean');
+const morgan        = require('morgan');
+const compression   = require('compression');
+
+const { initSocket } = require('./socket/socketHandler');
 
 // Route imports
 const authRoutes         = require('./routes/auth');
@@ -30,59 +36,45 @@ const jobRoutes          = require('./routes/job');
 const adminRoutes        = require('./routes/admin');
 const notificationRoutes = require('./routes/notification');
 
-// Cron jobs
 require('./cron/jobExpiry');
 const dropStaleIndexes = require('./utils/fixIndexes');
 
 const app = express();
 
-// Trust Render/proxy headers — required for rate limiting to work correctly on Render
+// Trust Render/Railway proxy headers
 app.set('trust proxy', 1);
 
-// ─── Fix 1: Security middleware (order matters) ───
-
-// 1a. Helmet — sets secure HTTP headers (XSS protection, no sniff, HSTS, etc.)
+// ─── Security middleware ───
 app.use(helmet({
-  crossOriginResourcePolicy: { policy: 'cross-origin' }, // allow frontend assets
-  contentSecurityPolicy: false, // disable CSP for now — enable when you go to prod with a proper config
+  crossOriginResourcePolicy: { policy: 'cross-origin' },
+  contentSecurityPolicy: false,
 }));
 
-// 1b. CORS — after helmet
+const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:5173';
+
 app.use(cors({
-  origin: process.env.FRONTEND_URL || 'http://localhost:5173',
+  origin: FRONTEND_URL,
   credentials: true,
 }));
 
-app.use(express.json({ limit: '10kb' }));       // cap body size — prevents large payload attacks
+app.use(compression());
+app.use(morgan(process.env.NODE_ENV === 'production' ? 'combined' : 'dev'));
+app.use(express.json({ limit: '10kb' }));
 app.use(express.urlencoded({ extended: true, limit: '10kb' }));
-
-// 1c. MongoDB injection sanitizer — strips $ and . from req.body, req.query, req.params
 app.use(mongoSanitize());
-
-// 1d. XSS sanitizer — strips HTML/script tags from all string inputs
 app.use(xss());
 
-// ─── Rate limiting ───
-const globalLimiter = rateLimit({
+// ─── Global rate limit ───
+app.use(rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 100,
-  standardHeaders: true,
-  legacyHeaders: false,
   message: { success: false, message: 'Too many requests. Please try again later.' }
-});
-app.use('/api/', globalLimiter);
+}));
 
-// Tighter limit specifically for OTP-sending routes
-const otpLimiter = rateLimit({
-  windowMs: 60 * 60 * 1000, // 1 hour window
-  max: 5,
-  keyGenerator: (req) => (req.body?.mobile || req.ip), // per mobile number, not just IP
-  message: { success: false, message: 'Too many OTP requests. Please wait 1 hour.' }
+// ─── Health check ───
+app.get('/api/health', (req, res) => {
+  res.json({ success: true, message: 'MoKama API is running', timestamp: new Date() });
 });
-app.use('/api/auth/worker/register',      otpLimiter);
-app.use('/api/auth/worker/login',         otpLimiter);
-app.use('/api/auth/employer/register',    otpLimiter);
-app.use('/api/auth/employer/login',       otpLimiter);
 
 // ─── Routes ───
 app.use('/api/auth',          authRoutes);
@@ -92,40 +84,48 @@ app.use('/api/jobs',          jobRoutes);
 app.use('/api/admin',         adminRoutes);
 app.use('/api/notifications', notificationRoutes);
 
-// ─── Health check ───
-app.get('/api/health', (req, res) => {
-  res.json({ success: true, message: 'MoKama API is running', timestamp: new Date() });
-});
-
-// ─── 404 ───
+// ─── 404 handler ───
 app.use((req, res) => {
   res.status(404).json({ success: false, message: 'Route not found' });
 });
 
-// ─── Global error handler ───
-app.use((err, req, res, next) => {
-  console.error('Unhandled error:', err.stack);
-  res.status(err.status || 500).json({
-    success: false,
-    message: process.env.NODE_ENV === 'production'
-      ? 'Something went wrong. Please try again.'
-      : err.message,
-  });
+// ─── Create HTTP server and attach Socket.IO ───
+const server = http.createServer(app);
+
+const io = new Server(server, {
+  cors: {
+    origin:      FRONTEND_URL,
+    methods:     ['GET', 'POST'],
+    credentials: true,
+  },
+  pingTimeout:  60000,
+  pingInterval: 25000,
 });
 
-// ─── Connect DB and start ───
+// ─── Initialize socket handler ───
+initSocket(io);
+
+// ─── Make io accessible in controllers ───
+// Attach to app so controllers can access via req.app.get('io')
+app.set('io', io);
+
+// ─── MongoDB connection ───
 const PORT = process.env.PORT || 5000;
+
 mongoose.connect(process.env.MONGO_URI)
   .then(async () => {
     console.log('✅ MongoDB connected');
-    await dropStaleIndexes(mongoose);
-    app.listen(PORT, () => {
+    await dropStaleIndexes();
+
+    server.listen(PORT, () => {
       console.log(`🚀 MoKama API running on port ${PORT}`);
     });
+
+    // Seed admin after server starts
+    const { seedAdmin } = require('./controllers/adminController');
+    setTimeout(seedAdmin, 5000);
   })
   .catch(err => {
     console.error('❌ MongoDB connection failed:', err.message);
     process.exit(1);
   });
-
-module.exports = app;

@@ -12,14 +12,15 @@ import {
 import { formatDate, timeAgo } from '../../utils/honour'
 import StatusBanner from '../../components/StatusBanner'
 import ProfileCompleteness from '../../components/ProfileCompleteness'
+import useSocket from '../../socket/useSocket'
 
 const NAV = [
-  { href: '/employer/dashboard',             label: 'Dashboard',    icon: <LayoutDashboard size={16} /> },
-  { href: '/employer/dashboard/create-job',  label: 'Create Job',   icon: <PlusCircle size={16} /> },
-  { href: '/employer/dashboard/workers',     label: 'Find Workers', icon: <Users size={16} /> },
-  { href: '/employer/dashboard/active-jobs', label: 'Active Jobs',  icon: <Briefcase size={16} /> },
-  { href: '/employer/dashboard/history',     label: 'Job History',  icon: <Clock size={16} /> },
-  { href: '/employer/dashboard/profile',     label: 'Profile',      icon: <User size={16} /> },
+  { href: '/employer/dashboard', label: 'Dashboard', icon: <LayoutDashboard size={16} /> },
+  { href: '/employer/dashboard/create-job', label: 'Create Job', icon: <PlusCircle size={16} /> },
+  { href: '/employer/dashboard/workers', label: 'Find Workers', icon: <Users size={16} /> },
+  { href: '/employer/dashboard/active-jobs', label: 'Active Jobs', icon: <Briefcase size={16} /> },
+  { href: '/employer/dashboard/history', label: 'Job History', icon: <Clock size={16} /> },
+  { href: '/employer/dashboard/profile', label: 'Profile', icon: <User size={16} /> },
   { href: '/employer/dashboard/notifications', label: 'Notifications', icon: <Bell size={16} /> },
 ]
 
@@ -60,6 +61,17 @@ function Overview() {
       .catch(() => toast.error('Failed to load'))
       .finally(() => setLoading(false))
   }, [])
+
+  useSocket({
+    requestAccepted: (data) => {
+      toast.success(`${data.workerName} accepted your job request!`)
+      load()
+    },
+    requestRejected: (data) => {
+      toast.error(`${data.workerName} rejected your job request`)
+      load()
+    },
+  })
 
   if (loading) return <Spinner />
   return (
@@ -289,6 +301,33 @@ function ActiveJobs() {
 
   useEffect(() => { load() }, [load])
 
+  useSocket({
+    requestAccepted: (data) => {
+      toast.success(`✅ ${data.workerName} accepted: ${data.jobTitle}`)
+      load() // refresh jobs list
+    },
+    requestRejected: (data) => {
+      toast.error(`❌ ${data.workerName} rejected: ${data.jobTitle}`)
+      load()
+    },
+    workCompleted: (data) => {
+      toast.success(`🏁 Work completed by ${data.workerName}!`)
+      // Update job status to PAYMENT_PENDING in UI
+      setJobs(prev => prev.map(j =>
+        j._id?.toString() === data.jobId?.toString()
+          ? { ...j, status: 'PAYMENT_PENDING', workCompletedAt: data.completedAt }
+          : j
+      ))
+    },
+    paymentReceived: (data) => {
+      toast.success(`✅ ${data.workerName} confirmed payment received`)
+      if (data.isCompleted) {
+        toast.success('Job fully completed! 🎉')
+        load()
+      }
+    },
+  })
+
   const action = async (jobId, endpoint, msg) => {
     setActing(jobId + endpoint)
     try {
@@ -410,7 +449,7 @@ function EmployerProfile() {
   useEffect(() => {
     api.get('/employer/honour-log')
       .then(r => setHonourLogs(r.data.logs || []))
-      .catch(() => {})
+      .catch(() => { })
       .finally(() => setLogsLoading(false))
   }, [])
 
@@ -509,7 +548,7 @@ function Notifications() {
   useEffect(() => {
     api.get('/notifications').then(r => {
       setNotifications(r.data.notifications || [])
-      api.patch('/notifications/mark-read').catch(() => {})
+      api.patch('/notifications/mark-read').catch(() => { })
     }).catch(() => toast.error('Failed')).finally(() => setLoading(false))
   }, [])
 
