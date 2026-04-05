@@ -6,6 +6,9 @@ const dropStaleIndexes = async (mongoose) => {
   try {
     const db = mongoose.connection.db;
 
+    // Guard — if db isn't ready yet, skip silently
+    if (!db) return;
+
     const collections = ['employers', 'workers', 'jobs', 'jobrequests', 'notifications'];
 
     for (const colName of collections) {
@@ -14,7 +17,6 @@ const dropStaleIndexes = async (mongoose) => {
         const indexes = await col.indexes();
 
         for (const idx of indexes) {
-          // Drop any index that references a field not in our schema
           const staleFields = ['employerId', 'workerId', 'jobId'];
           const idxKeys = Object.keys(idx.key || {});
           const isStale = idxKeys.some(k => staleFields.includes(k));
@@ -29,7 +31,7 @@ const dropStaleIndexes = async (mongoose) => {
       }
     }
   } catch (err) {
-    console.warn('⚠️  Index cleanup warning:', err.message);
+    // Silently ignore — non-critical utility
   }
 };
 

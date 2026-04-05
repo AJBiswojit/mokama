@@ -35,6 +35,7 @@ const employerRoutes     = require('./routes/employer');
 const jobRoutes          = require('./routes/job');
 const adminRoutes        = require('./routes/admin');
 const notificationRoutes = require('./routes/notification');
+const geoRoutes          = require('./routes/geo');
 
 require('./cron/jobExpiry');
 const dropStaleIndexes = require('./utils/fixIndexes');
@@ -83,6 +84,7 @@ app.use('/api/employer',      employerRoutes);
 app.use('/api/jobs',          jobRoutes);
 app.use('/api/admin',         adminRoutes);
 app.use('/api/notifications', notificationRoutes);
+app.use('/api/geo',          geoRoutes);
 
 // ─── 404 handler ───
 app.use((req, res) => {
@@ -115,7 +117,7 @@ const PORT = process.env.PORT || 5000;
 mongoose.connect(process.env.MONGO_URI)
   .then(async () => {
     console.log('✅ MongoDB connected');
-    await dropStaleIndexes();
+    await dropStaleIndexes(mongoose);
 
     server.listen(PORT, () => {
       console.log(`🚀 MoKama API running on port ${PORT}`);
@@ -123,7 +125,7 @@ mongoose.connect(process.env.MONGO_URI)
 
     // Seed admin after server starts
     const { seedAdmin } = require('./controllers/adminController');
-    setTimeout(seedAdmin, 5000);
+    await seedAdmin();
   })
   .catch(err => {
     console.error('❌ MongoDB connection failed:', err.message);

@@ -18,11 +18,12 @@ exports.workerRegister = async (req, res) => {
   try {
     const {
       name, fatherName, gender, dob, mobile, email,
-      address, pincode, workerType, experience, labourCardNumber
+      address, state, district, block, pincode,
+      workerType, experience, labourCardNumber
     } = req.body;
 
     // Validate
-    if (!name || !fatherName || !gender || !dob || !mobile || !email || !address || !pincode)
+    if (!name || !fatherName || !gender || !dob || !mobile || !email || !address || !state || !district || !block || !pincode)
       return res.status(400).json({ success: false, message: 'All required fields must be filled' });
     if (!INDIAN_PHONE.test(mobile))
       return res.status(400).json({ success: false, message: 'Enter a valid 10-digit Indian mobile number' });
@@ -51,7 +52,7 @@ exports.workerRegister = async (req, res) => {
     const data = {
       name, fatherName, gender, dob, mobile,
       email: email.toLowerCase(),
-      address, pincode,
+      address, state, district, block, pincode,
       workerType: workerTypeId,
       workerTypeName,
       experience: experience || 0,
