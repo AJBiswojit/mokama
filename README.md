@@ -2,7 +2,7 @@
 
 > A digital employment platform connecting daily wage workers and employers in rural and semi-urban India.
 
-![Version](https://img.shields.io/badge/version-1.0.0-orange)
+![Version](https://img.shields.io/badge/version-1.1.0-orange)
 ![Node](https://img.shields.io/badge/node-%3E%3D18.0.0-green)
 ![React](https://img.shields.io/badge/react-18.2.0-blue)
 ![MongoDB](https://img.shields.io/badge/database-MongoDB-green)
@@ -17,6 +17,7 @@
 - [Tech Stack](#tech-stack)
 - [Project Structure](#project-structure)
 - [Getting Started](#getting-started)
+- [Geo Data Setup](#geo-data-setup)
 - [Authentication Flow](#authentication-flow)
 - [API Reference](#api-reference)
 - [Job Lifecycle](#job-lifecycle)
@@ -39,15 +40,21 @@ MoKama bridges the gap between daily wage workers (masons, carpenters, plumbers,
 ## Features
 
 ### For Workers
-- Register with mobile + email + trade details
+- Register with mobile + email + trade details + full location (state/district/block)
+- 3-stage registration: Basic Details → Work Details → Verification
 - Receive job match emails when nearby jobs are posted
 - Toggle availability status
 - Accept or reject job requests (10-minute window)
 - Track active jobs, payment status, and job history
 - View honour score history and profile completeness
+- Update profile including state, district, block via cascading dropdowns
 
 ### For Employers
-- Register and post jobs by trade type and location
+- **Two registration paths** — Individual or Organisation
+- Individual: 20 categories (Home Owner, Farmer, Transport Owner, etc.) with subcategories
+- Organisation: 20 categories (Contractor, Factory, NGO, etc.) with subcategories
+- Full location capture: state → district → block → pincode (hierarchical)
+- Post jobs by trade type and location
 - Search available workers filtered by trade, pincode, and honour score
 - Send job requests to specific workers
 - Confirm work started and trigger payment
@@ -63,15 +70,17 @@ MoKama bridges the gap between daily wage workers (masons, carpenters, plumbers,
 - Dashboard overview with cached stats
 
 ### Platform
-- Email OTP authentication (no SMS cost)
+- Email OTP authentication via **Brevo** (no SMS cost)
 - JWT access + refresh token pair (15 min / 30 days)
 - In-memory OTP cache with brute-force protection
 - Honour Score system with automatic adjustments
 - Job matching algorithm — notifies top 5 workers on job creation
 - Email notifications for approvals, rejections, and job requests
 - Soft delete for users and jobs (data preserved, restorable)
-- Profile completeness scoring
+- Profile completeness scoring (updated to include location fields)
 - Admin activity log for accountability
+- **Socket.io** — real-time job status updates and in-app notifications
+- **India Geo Database** — all 36 states/UTs, ~800 districts, ~6800 blocks seeded in MongoDB
 
 ---
 
@@ -82,8 +91,9 @@ MoKama bridges the gap between daily wage workers (masons, carpenters, plumbers,
 | **Frontend** | React 18, Vite, Tailwind CSS |
 | **Backend** | Node.js, Express.js |
 | **Database** | MongoDB with Mongoose ODM |
+| **Real-time** | Socket.io |
 | **Auth** | JWT (access + refresh), Email OTP |
-| **Email** | Nodemailer (Gmail SMTP) |
+| **Email** | Brevo (Sendinblue) API |
 | **Security** | Helmet, xss-clean, express-mongo-sanitize |
 | **Rate Limiting** | express-rate-limit |
 | **Scheduling** | node-cron |
@@ -101,7 +111,8 @@ mokama/
 │   ├── controllers/
 │   │   ├── authController.js       # Registration, login, OTP, refresh token
 │   │   ├── jobController.js        # Full job lifecycle + matching algorithm
-│   │   └── adminController.js      # Admin CRUD, stats, honour score, logs
+│   │   ├── adminController.js      # Admin CRUD, stats, honour score, logs
+│   │   └── geoController.js        # States, districts, blocks cascading API
 │   ├── cron/
 │   │   └── jobExpiry.js            # Auto-expire job requests, penalise no-response
 │   ├── middlewares/
@@ -111,36 +122,41 @@ mokama/
 │   │   ├── Admin.js                # Admin account with bcrypt password
 │   │   ├── AdminLog.js             # Audit trail for all admin actions
 │   │   ├── Category.js             # WorkerType and EmployerCategory
-│   │   ├── Employer.js             # Employer profile + auth fields
+│   │   ├── Employer.js             # Employer profile + auth + type + location fields
+│   │   ├── Geo.js                  # India geo data — state/district/block flat model
 │   │   ├── HonourLog.js            # Every honour score change recorded
 │   │   ├── Job.js                  # Job with full status lifecycle + isHidden
 │   │   ├── JobRequest.js           # Employer to Worker request with expiry
 │   │   ├── Notification.js         # In-app notifications
-│   │   └── Worker.js               # Worker profile + auth fields
+│   │   └── Worker.js               # Worker profile + auth + location fields
 │   ├── routes/
 │   │   ├── admin.js                # All admin routes
 │   │   ├── auth.js                 # Register, login, verify, refresh
 │   │   ├── employer.js             # Employer profile + honour log
+│   │   ├── geo.js                  # Geo cascading dropdown routes
 │   │   ├── job.js                  # Job actions
 │   │   ├── notification.js         # Fetch + mark read notifications
 │   │   └── worker.js               # Worker profile, availability, honour log
 │   ├── services/
 │   │   └── notificationService.js  # In-app notification helpers
+│   ├── socket/
+│   │   └── socketHandler.js        # Socket.io event handlers
 │   ├── utils/
 │   │   ├── adminLog.js             # Fire-and-forget admin action logger
-│   │   ├── emailOtp.js             # Nodemailer OTP email + generic sendEmail
+│   │   ├── emailOtp.js             # Brevo OTP email + generic sendEmail
 │   │   ├── fixIndexes.js           # Auto-clean stale MongoDB indexes on startup
 │   │   ├── honour.js               # Honour score update + HonourLog writer
 │   │   ├── jwt.js                  # Access + refresh token generation/verification
 │   │   └── otpCache.js             # In-memory OTP store with TTL + brute-force lock
+│   ├── seedGeo.js                  # One-time seed script for India geo data
 │   ├── .env                        # Environment variables (never commit)
 │   ├── package.json
-│   └── server.js                   # App entry — middleware, routes, DB connection
+│   └── server.js                   # App entry — middleware, routes, DB, Socket.io
 │
 └── mokama-frontend/
     ├── src/
     │   ├── api/
-    │   │   └── AuthContext.jsx     # Axios instance, JWT interceptor, auth state
+    │   │   └── AuthContext.jsx          # Axios instance, JWT interceptor, auth state, socket connect
     │   ├── components/
     │   │   ├── DashboardLayout.jsx      # Sidebar + nav + HonourBadge + StatusBadge
     │   │   ├── Pagination.jsx           # Reusable paginator with page pills
@@ -151,16 +167,20 @@ mokama/
     │   │   ├── auth/
     │   │   │   ├── AdminLogin.jsx
     │   │   │   ├── EmployerLogin.jsx
-    │   │   │   ├── EmployerRegister.jsx
+    │   │   │   ├── EmployerTypeSelect.jsx          # Individual vs Organisation selection
+    │   │   │   ├── IndividualEmployerRegister.jsx  # Individual employer 3-stage form
+    │   │   │   ├── OrganisationEmployerRegister.jsx # Organisation employer 3-stage form
     │   │   │   ├── WorkerLogin.jsx
-    │   │   │   └── WorkerRegister.jsx
+    │   │   │   └── WorkerRegister.jsx              # Worker 3-stage form with geo dropdowns
     │   │   └── dashboard/
     │   │       ├── AdminDashboard.jsx     # Full admin panel with all panels
-    │   │       ├── EmployerDashboard.jsx  # Job posting, worker search, job tracking
-    │   │       └── WorkerDashboard.jsx    # Job requests, active work, history
+    │   │       ├── EmployerDashboard.jsx  # Job posting, worker search, job tracking, profile edit
+    │   │       └── WorkerDashboard.jsx    # Job requests, active work, history, profile edit
+    │   ├── socket/
+    │   │   └── socket.js                # Socket.io client instance
     │   └── utils/
     │       ├── honour.js           # Honour label helpers (frontend)
-    │       └── profileScore.js     # Profile completeness calculator
+    │       └── profileScore.js     # Profile completeness calculator (updated with location fields)
     ├── .env                        # Frontend env vars (VITE_ prefix)
     ├── index.html
     └── package.json
@@ -174,13 +194,13 @@ mokama/
 
 - Node.js v18+
 - MongoDB (local) or MongoDB Atlas account
-- Gmail account with 2-Step Verification enabled
+- Brevo account (free tier — for email OTP)
 
 ### Installation
 
 **1. Clone the repository**
 ```bash
-git clone https://github.com/your-username/mokama.git
+git clone https://github.com/AJBiswojit/mokama.git
 cd mokama
 ```
 
@@ -217,10 +237,9 @@ JOB_REQUEST_EXPIRY_MINUTES=10
 ADMIN_EMAIL=admin@mokama.in
 ADMIN_PASSWORD=your_strong_admin_password
 
-# ── Email (Gmail) ──
-EMAIL_USER=your_gmail@gmail.com
-EMAIL_PASS=your_16_char_app_password
-EMAIL_FROM=MoKama <your_gmail@gmail.com>
+# ── Email (Brevo) ──
+BREVO_API_KEY=your_brevo_api_key_here
+EMAIL_FROM=MoKama <noreply@mokama.in>
 ```
 
 > **Generate strong secrets:**
@@ -228,7 +247,7 @@ EMAIL_FROM=MoKama <your_gmail@gmail.com>
 > node -e "console.log(require('crypto').randomBytes(64).toString('hex'))"
 > ```
 
-> **Gmail App Password:** Google Account → Security → 2-Step Verification → App Passwords → Create
+> **Brevo API Key:** brevo.com → Settings → API Keys → Generate
 
 **Frontend — create `mokama-frontend/.env`:**
 ```env
@@ -257,23 +276,75 @@ On first startup, the admin account is auto-created using `ADMIN_EMAIL` and `ADM
 
 ---
 
+## Geo Data Setup
+
+MoKama uses a MongoDB-backed India geo database for cascading state → district → block dropdowns on all registration and profile pages.
+
+**Run once after first server start:**
+```bash
+cd mokama-backend
+node seedGeo.js
+```
+
+Expected output:
+```
+✅ Connected to MongoDB
+🗑️  Cleared existing geo data
+✅ Inserted ~6800 geo records
+   States: 36
+   Districts: ~800
+   Blocks: ~6800
+✅ Done!
+```
+
+This seeds all 28 states + 8 UTs with complete district and block data (~1MB total in MongoDB — well within Atlas free tier).
+
+**Geo API endpoints** (used internally by registration and profile forms):
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `GET` | `/api/geo/states` | All states and UTs |
+| `GET` | `/api/geo/districts?state=Odisha` | Districts for a state |
+| `GET` | `/api/geo/blocks?state=Odisha&district=Khordha` | Blocks for a district |
+
+---
+
 ## Authentication Flow
 
-MoKama uses **mobile number as identity** and **email OTP as authentication**. No SMS required.
+MoKama uses **mobile number as identity** and **email OTP as authentication** via Brevo. No SMS required.
 
-### Registration
+### Worker Registration
 ```
-1. User fills form (mobile + email + details)
-2. POST /api/auth/worker/register  → saves to DB, sends OTP to email
-3. User enters 6-digit OTP from inbox
+1. User fills 3-stage form:
+   Stage 1: Basic Details (name, father name, gender, DOB, address, state/district/block, pincode)
+   Stage 2: Work Details (worker type, experience, labour card)
+   Stage 3: Verification (mobile, email, consent, OTP)
+2. POST /api/auth/worker/register  → saves to DB, sends OTP to email via Brevo
+3. User enters 6-digit OTP
 4. POST /api/auth/worker/verify-otp  → verifies OTP, returns JWT
 5. Account status = "pending" until admin approves
 ```
 
-### Login
+### Employer Registration
+```
+1. User selects type: Individual or Organisation
+2. Individual — 3-stage form:
+   Stage 1: Basic Details (name, father name, gender, DOB, address, state/district/block, pincode)
+   Stage 2: Work Details (employer category from 20 individual options, subcategory, labour card)
+   Stage 3: Verification (mobile, email, consent, OTP)
+3. Organisation — 3-stage form:
+   Stage 1: Org Details (org name, establishment date, address, state/district/block, pincode)
+   Stage 2: Business Details (category from 20 org options, subcategory, GST, labour license)
+   Stage 3: Verification (mobile, email, consent, OTP)
+4. POST /api/auth/employer/register  → saves with employerType field, sends OTP via Brevo
+5. POST /api/auth/employer/verify-otp  → verifies OTP, returns JWT
+6. Account status = "pending" until admin approves
+```
+
+### Login (Worker & Employer)
 ```
 1. User enters mobile number
-2. POST /api/auth/worker/login  → finds user, sends OTP to registered email
+2. POST /api/auth/worker/login  → finds user, sends OTP to registered email via Brevo
 3. User enters 6-digit OTP
 4. POST /api/auth/worker/login/verify  → returns access + refresh tokens
 ```
@@ -284,6 +355,7 @@ Access token expires in 15 minutes.
 Axios interceptor auto-calls POST /api/auth/refresh on 401.
 New access token returned silently — user stays logged in.
 Refresh token valid for 30 days.
+Socket.io reconnects automatically with new token.
 ```
 
 ### OTP Security
@@ -306,7 +378,7 @@ All protected routes require `Authorization: Bearer <accessToken>` header.
 | `POST` | `/api/auth/worker/verify-otp` | — | Verify OTP, complete registration |
 | `POST` | `/api/auth/worker/login` | — | Send login OTP to email |
 | `POST` | `/api/auth/worker/login/verify` | — | Verify OTP, return tokens |
-| `POST` | `/api/auth/employer/register` | — | Register employer, send email OTP |
+| `POST` | `/api/auth/employer/register` | — | Register employer (individual or org), send OTP |
 | `POST` | `/api/auth/employer/verify-otp` | — | Verify OTP, complete registration |
 | `POST` | `/api/auth/employer/login` | — | Send login OTP to email |
 | `POST` | `/api/auth/employer/login/verify` | — | Verify OTP, return tokens |
@@ -320,7 +392,7 @@ All protected routes require `Authorization: Bearer <accessToken>` header.
 | Method | Endpoint | Auth | Description |
 |--------|----------|------|-------------|
 | `GET`  | `/api/worker/profile` | ✅ Worker | Get own profile |
-| `PUT`  | `/api/worker/profile` | ✅ Worker | Update name, address, pincode, experience |
+| `PUT`  | `/api/worker/profile` | ✅ Worker | Update name, address, state, district, block, pincode, experience |
 | `GET`  | `/api/worker/dashboard` | ✅ Worker | Dashboard stats |
 | `PATCH`| `/api/worker/availability` | ✅ Worker | Toggle availability status |
 | `GET`  | `/api/worker/honour-log` | ✅ Worker | Own honour score history |
@@ -330,9 +402,17 @@ All protected routes require `Authorization: Bearer <accessToken>` header.
 | Method | Endpoint | Auth | Description |
 |--------|----------|------|-------------|
 | `GET`  | `/api/employer/profile` | ✅ Employer | Get own profile |
-| `PUT`  | `/api/employer/profile` | ✅ Employer | Update name, address, pincode |
+| `PUT`  | `/api/employer/profile` | ✅ Employer | Update name, address, state, district, block, pincode |
 | `GET`  | `/api/employer/dashboard` | ✅ Employer | Dashboard stats |
 | `GET`  | `/api/employer/honour-log` | ✅ Employer | Own honour score history |
+
+### Geo Routes
+
+| Method | Endpoint | Auth | Description |
+|--------|----------|------|-------------|
+| `GET`  | `/api/geo/states` | — | All Indian states and UTs |
+| `GET`  | `/api/geo/districts?state=` | — | Districts for a given state |
+| `GET`  | `/api/geo/blocks?state=&district=` | — | Blocks for a given district |
 
 ### Job Routes
 
@@ -401,6 +481,12 @@ OPEN
 - Worker penalised −5 honour for no response
 - Employer penalised −4 honour for payment pending over 24 hours
 
+**Real-time events via Socket.io:**
+- Job request received → worker notified instantly
+- Job accepted/rejected → employer notified instantly
+- Work completed → employer notified instantly
+- Payment confirmed → worker notified instantly
+
 ---
 
 ## Honour Score System
@@ -431,6 +517,18 @@ Every worker and employer starts with a score of **50/100**.
 | 0–29   | 🔴 Poor |
 
 All changes are permanently logged in `HonourLog` with reason, source, and timestamp. Workers and employers can view their own history from their profile page.
+
+---
+
+## Profile Completeness
+
+Profile completeness is calculated from filled fields and shown as a circular progress indicator on each dashboard.
+
+**Worker fields scored (15 total):**
+Full name, Father's name, Gender, Date of birth, Mobile, Email, Address, State, District, Block, Pincode, Work type, Experience, Labour card number, Email verified
+
+**Employer fields scored (11 total):**
+Full name / Org name, Mobile, Email, Address, State, District, Block, Pincode, Business category, Business subcategory, Email verified
 
 ---
 
@@ -480,9 +578,9 @@ Access at `/admin/dashboard` after logging in with admin credentials.
 6. Add all environment variables in the Render dashboard
 7. Set `NODE_ENV=production`
 
-### Frontend — Vercel
+### Frontend — Railway
 
-1. Create project on [vercel.com](https://vercel.com)
+1. Create project on [railway.app](https://railway.app)
 2. Connect repo, set root to `mokama-frontend`
 3. Framework preset: **Vite**
 4. Add environment variable: `VITE_API_URL=https://your-backend.onrender.com/api`
@@ -495,6 +593,13 @@ Access at `/admin/dashboard` after logging in with admin credentials.
 3. Add IP `0.0.0.0/0` in Network Access (allows all IPs)
 4. Copy connection string to `MONGO_URI` in backend env
 
+### After First Deploy — Seed Geo Data
+
+```bash
+# Run once on the server or locally pointing to production DB
+node seedGeo.js
+```
+
 ---
 
 ## Environment Variables Reference
@@ -506,8 +611,7 @@ Access at `/admin/dashboard` after logging in with admin credentials.
 | `MONGO_URI` | ✅ | MongoDB connection string |
 | `JWT_SECRET` | ✅ | Access token secret — 64+ chars |
 | `JWT_REFRESH_SECRET` | ✅ | Refresh token secret — 64+ chars |
-| `EMAIL_USER` | ✅ | Gmail address for sending emails |
-| `EMAIL_PASS` | ✅ | Gmail App Password — 16 chars, no spaces |
+| `BREVO_API_KEY` | ✅ | Brevo API key for sending OTP emails |
 | `PORT` | — | Server port (default: `5000`) |
 | `NODE_ENV` | — | `development` or `production` |
 | `FRONTEND_URL` | — | Allowed CORS origin (default: `http://localhost:5173`) |
