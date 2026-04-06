@@ -1,18 +1,21 @@
 // Returns 0–100 completeness score and a list of missing fields
 export const getWorkerProfileScore = (worker) => {
   const checks = [
-    { done: !!worker?.name,             label: 'Full name' },
-    { done: !!worker?.fatherName,       label: "Father's name" },
-    { done: !!worker?.gender,           label: 'Gender' },
-    { done: !!worker?.dob,              label: 'Date of birth' },
-    { done: !!worker?.mobile,           label: 'Mobile number' },
-    { done: !!worker?.email,            label: 'Email address' },
-    { done: !!worker?.address,          label: 'Address' },
-    { done: !!worker?.pincode,          label: 'Pincode' },
-    { done: !!worker?.workerTypeName,   label: 'Work type / trade' },
+    { done: !!worker?.name,                label: 'Full name' },
+    { done: !!worker?.fatherName,          label: "Father's name" },
+    { done: !!worker?.gender,              label: 'Gender' },
+    { done: !!worker?.dob,                 label: 'Date of birth' },
+    { done: !!worker?.mobile,              label: 'Mobile number' },
+    { done: !!worker?.email,               label: 'Email address' },
+    { done: !!worker?.address,             label: 'Address' },
+    { done: !!worker?.state,               label: 'State' },
+    { done: !!worker?.district,            label: 'District' },
+    { done: !!worker?.block,               label: 'Block' },
+    { done: !!worker?.pincode,             label: 'Pincode' },
+    { done: !!worker?.workerTypeName,      label: 'Work type / trade' },
     { done: (worker?.experience || 0) > 0, label: 'Years of experience' },
-    { done: !!worker?.labourCardNumber, label: 'Labour card number' },
-    { done: worker?.isEmailVerified,    label: 'Email verified' },
+    { done: !!worker?.labourCardNumber,    label: 'Labour card number' },
+    { done: worker?.isEmailVerified,       label: 'Email verified' },
   ]
 
   const done    = checks.filter(c => c.done).length
@@ -24,13 +27,17 @@ export const getWorkerProfileScore = (worker) => {
 
 export const getEmployerProfileScore = (employer) => {
   const checks = [
-    { done: !!employer?.name,                 label: 'Full name' },
-    { done: !!employer?.mobile,               label: 'Mobile number' },
-    { done: !!employer?.email,                label: 'Email address' },
-    { done: !!employer?.address,              label: 'Address' },
-    { done: !!employer?.pincode,              label: 'Pincode' },
-    { done: !!employer?.employerCategoryName, label: 'Business category' },
-    { done: employer?.isEmailVerified,        label: 'Email verified' },
+    { done: !!employer?.name,                  label: 'Full name / Org name' },
+    { done: !!employer?.mobile,                label: 'Mobile number' },
+    { done: !!employer?.email,                 label: 'Email address' },
+    { done: !!employer?.address,               label: 'Address' },
+    { done: !!employer?.state,                 label: 'State' },
+    { done: !!employer?.district,              label: 'District' },
+    { done: !!employer?.block,                 label: 'Block' },
+    { done: !!employer?.pincode,               label: 'Pincode' },
+    { done: !!employer?.employerCategoryName,  label: 'Business category' },
+    { done: !!employer?.employerSubcategory,   label: 'Business subcategory' },
+    { done: employer?.isEmailVerified,         label: 'Email verified' },
   ]
 
   const done    = checks.filter(c => c.done).length

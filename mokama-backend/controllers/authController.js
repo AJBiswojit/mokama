@@ -192,9 +192,18 @@ exports.workerLoginVerify = async (req, res) => {
 // POST /auth/employer/register
 exports.employerRegister = async (req, res) => {
   try {
-    const { name, mobile, email, address, pincode, employerCategory } = req.body;
+    const {
+      name, mobile, email, address, pincode,
+      employerType, employerCategory, employerSubcategory,
+      // Individual fields
+      fatherName, gender, dob, labourCardNumber,
+      // Organisation fields
+      establishmentDate, gstNumber, labourLicenseNumber,
+      // Location
+      state, district, block,
+    } = req.body;
 
-    if (!name || !mobile || !email || !address || !pincode)
+    if (!name || !mobile || !email || !address)
       return res.status(400).json({ success: false, message: 'All required fields must be filled' });
     if (!INDIAN_PHONE.test(mobile))
       return res.status(400).json({ success: false, message: 'Enter a valid 10-digit Indian mobile number' });
@@ -218,9 +227,25 @@ exports.employerRegister = async (req, res) => {
     const data = {
       name, mobile,
       email: email.toLowerCase(),
-      address, pincode,
-      employerCategory: catDoc?._id,
+      address,
+      pincode:              pincode || '',
+      employerType:         employerType || 'individual',
+      employerCategory:     catDoc?._id,
       employerCategoryName: employerCategory || '',
+      employerSubcategory:  employerSubcategory || '',
+      // Location
+      state:                state || '',
+      district:             district || '',
+      block:                block || '',
+      // Individual
+      fatherName:           fatherName || '',
+      gender:               gender || '',
+      dob:                  dob || null,
+      labourCardNumber:     labourCardNumber || '',
+      // Organisation
+      establishmentDate:    establishmentDate || null,
+      gstNumber:            gstNumber || '',
+      labourLicenseNumber:  labourLicenseNumber || '',
       isVerified: false,
       status: byMobile?.status || 'pending',
     };
@@ -334,11 +359,12 @@ exports.employerLoginVerify = async (req, res) => {
     if (!cacheResult.valid)
       return res.status(400).json({ success: false, message: cacheResult.reason });
 
-    const token = generateToken({ id: employer._id, role: 'employer' });
+    const { accessToken, refreshToken } = generateTokens({ id: employer._id, role: 'employer' });
     res.json({
       success: true,
       message: 'Login successful',
-      token,
+      token: accessToken,
+      refreshToken,
       user: employer.toSafeObject(),
       accountStatus: employer.status,
     });

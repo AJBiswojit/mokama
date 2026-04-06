@@ -234,10 +234,6 @@ export default function LandingPage() {
                   </div>
                 ))}
               </div>
-              <Link to="/worker/register"
-                className="w-full mt-5 flex items-center justify-center gap-2 bg-[#f97316] text-white font-bold py-3 rounded-2xl hover:bg-[#fb923c] transition-all text-sm">
-                <HardHat size={15} /> Register as Worker — Free
-              </Link>
             </div>
 
             {/* Employers */}
@@ -267,10 +263,6 @@ export default function LandingPage() {
                   </div>
                 ))}
               </div>
-              <Link to="/employer/register"
-                className="w-full mt-5 flex items-center justify-center gap-2 bg-[#141414] border-2 border-violet-500/40 text-violet-400 font-bold py-3 rounded-2xl hover:bg-violet-500/10 transition-all text-sm">
-                <Building2 size={15} /> Register as Employer — Free
-              </Link>
             </div>
           </div>
         </div>
@@ -406,12 +398,6 @@ export default function LandingPage() {
               </div>
             </Link>
           </div>
-          <p className="text-[#6b6b6b] text-xs">
-            Already have an account?{' '}
-            <Link to="/worker/login"   className="text-[#f97316] font-semibold hover:underline">Worker Login</Link>
-            {' · '}
-            <Link to="/employer/login" className="text-[#f97316] font-semibold hover:underline">Employer Login</Link>
-          </p>
         </div>
       </section>
 
@@ -455,9 +441,8 @@ export default function LandingPage() {
               <div>
                 <div className="text-white font-semibold mb-2.5 text-sm">Contact</div>
                 <div className="space-y-1.5">
-                  <div className="text-xs">support@mokama.in</div>
-                  <div className="text-xs">Patuli, Odisha, India</div>
-                  <div><Link to="/admin/login" className="hover:text-violet-400 transition-colors text-xs">Admin Login</Link></div>
+                  <div className="text-xs">support.mokama@gmail.com</div>
+                  <div className="text-xs">Odisha, India</div>
                 </div>
               </div>
             </div>

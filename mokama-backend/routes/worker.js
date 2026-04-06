@@ -9,10 +9,10 @@ router.get('/profile', protect, requireRole('worker'), async (req, res) => {
 
 router.put('/profile', protect, requireRole('worker'), async (req, res) => {
   try {
-    const { name, address, pincode, experience } = req.body;
+    const { name, address, state, district, block, pincode, experience } = req.body;
     const worker = await Worker.findByIdAndUpdate(
       req.user._id,
-      { name, address, pincode, experience },
+      { name, address, state, district, block, pincode, experience },
       { new: true, runValidators: true }
     ).select('-otp -otpExpiry');
     res.json({ success: true, worker });

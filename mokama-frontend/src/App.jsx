@@ -5,7 +5,9 @@ import { AuthProvider, useAuth } from './api/AuthContext'
 // Pages
 import LandingPage from './pages/LandingPage'
 import WorkerRegister from './pages/auth/WorkerRegister'
-import EmployerRegister from './pages/auth/EmployerRegister'
+import EmployerTypeSelect from './pages/auth/EmployerTypeSelect'
+import IndividualEmployerRegister from './pages/auth/IndividualEmployerRegister'
+import OrganisationEmployerRegister from './pages/auth/OrganisationEmployerRegister'
 import WorkerLogin from './pages/auth/WorkerLogin'
 import EmployerLogin from './pages/auth/EmployerLogin'
 import AdminLogin from './pages/auth/AdminLogin'
@@ -35,7 +37,9 @@ export default function App() {
         <Routes>
           <Route path="/" element={<LandingPage />} />
           <Route path="/worker/register" element={<WorkerRegister />} />
-          <Route path="/employer/register" element={<EmployerRegister />} />
+          <Route path="/employer/register" element={<EmployerTypeSelect />} />
+          <Route path="/employer/register/individual" element={<IndividualEmployerRegister />} />
+          <Route path="/employer/register/organisation" element={<OrganisationEmployerRegister />} />
           <Route path="/worker/login" element={<WorkerLogin />} />
           <Route path="/employer/login" element={<EmployerLogin />} />
           <Route path="/admin/login" element={<AdminLogin />} />

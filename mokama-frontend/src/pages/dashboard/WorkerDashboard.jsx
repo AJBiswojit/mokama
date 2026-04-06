@@ -527,10 +527,24 @@ function AvailabilityToggle({ hasActiveJob = false }) {
 function WorkerProfile() {
   const { user, updateUser } = useAuth()
   const [editing, setEditing] = useState(false)
-  const [form, setForm] = useState({ name: user?.name || '', address: user?.address || '', pincode: user?.pincode || '', experience: user?.experience || 0 })
-  const [loading, setLoading] = useState(false)
-  const [honourLogs, setHonourLogs] = useState([])
+  const [form, setForm] = useState({
+    name:     user?.name     || '',
+    address:  user?.address  || '',
+    state:    user?.state    || '',
+    district: user?.district || '',
+    block:    user?.block    || '',
+    pincode:  user?.pincode  || '',
+    experience: user?.experience || 0,
+  })
+  const [loading, setLoading]   = useState(false)
+  const [honourLogs, setHonourLogs]   = useState([])
   const [logsLoading, setLogsLoading] = useState(true)
+
+  // Geo state
+  const [states, setStates]         = useState([])
+  const [districts, setDistricts]   = useState([])
+  const [blocks, setBlocks]         = useState([])
+  const [geoLoading, setGeoLoading] = useState({ states: false, districts: false, blocks: false })
 
   useEffect(() => {
     api.get('/worker/honour-log')
@@ -538,6 +552,44 @@ function WorkerProfile() {
       .catch(() => { })
       .finally(() => setLogsLoading(false))
   }, [])
+
+  // Load states when editing opens
+  useEffect(() => {
+    if (!editing) return
+    setGeoLoading(p => ({ ...p, states: true }))
+    api.get('/geo/states')
+      .then(r => setStates(r.data.states || []))
+      .finally(() => setGeoLoading(p => ({ ...p, states: false })))
+  }, [editing])
+
+  // Load districts when state changes
+  useEffect(() => {
+    if (!form.state) { setDistricts([]); setBlocks([]); return }
+    setGeoLoading(p => ({ ...p, districts: true }))
+    setDistricts([]); setBlocks([])
+    api.get(`/geo/districts?state=${encodeURIComponent(form.state)}`)
+      .then(r => setDistricts(r.data.districts || []))
+      .finally(() => setGeoLoading(p => ({ ...p, districts: false })))
+  }, [form.state])
+
+  // Load blocks when district changes
+  useEffect(() => {
+    if (!form.district) { setBlocks([]); return }
+    setGeoLoading(p => ({ ...p, blocks: true }))
+    setBlocks([])
+    api.get(`/geo/blocks?state=${encodeURIComponent(form.state)}&district=${encodeURIComponent(form.district)}`)
+      .then(r => setBlocks(r.data.blocks || []))
+      .finally(() => setGeoLoading(p => ({ ...p, blocks: false })))
+  }, [form.district])
+
+  const setField = (k, v) => {
+    setForm(p => {
+      const next = { ...p, [k]: v }
+      if (k === 'state')    { next.district = ''; next.block = '' }
+      if (k === 'district') { next.block = '' }
+      return next
+    })
+  }
 
   const save = async () => {
     setLoading(true)
@@ -571,12 +623,65 @@ function WorkerProfile() {
 
         {editing ? (
           <div className="space-y-3">
-            <div><label className="label">Name</label><input className="input" value={form.name} onChange={e => setForm(p => ({ ...p, name: e.target.value }))} /></div>
-            <div><label className="label">Address</label><textarea className="input resize-none min-h-[70px]" value={form.address} onChange={e => setForm(p => ({ ...p, address: e.target.value }))} /></div>
-            <div className="grid grid-cols-2 gap-3">
-              <div><label className="label">Pincode</label><input className="input" maxLength={6} value={form.pincode} onChange={e => setForm(p => ({ ...p, pincode: e.target.value }))} /></div>
-              <div><label className="label">Experience (yrs)</label><input type="number" className="input" value={form.experience} onChange={e => setForm(p => ({ ...p, experience: e.target.value }))} /></div>
+            <div>
+              <label className="label">Name</label>
+              <input className="input" value={form.name} onChange={e => setField('name', e.target.value)} />
             </div>
+            <div>
+              <label className="label">Address</label>
+              <textarea className="input resize-none min-h-[70px]" value={form.address} onChange={e => setField('address', e.target.value)} />
+            </div>
+
+            {/* State */}
+            <div>
+              <label className="label">State</label>
+              <div className="relative">
+                <select className="input bg-[#141414]" value={form.state}
+                  onChange={e => setField('state', e.target.value)} disabled={geoLoading.states}>
+                  <option value="">{geoLoading.states ? 'Loading...' : 'Select state'}</option>
+                  {states.map(s => <option key={s} value={s}>{s}</option>)}
+                </select>
+                {geoLoading.states && <span className="absolute right-3 top-3 text-[#f97316] text-xs animate-spin">⟳</span>}
+              </div>
+            </div>
+
+            {/* District + Block */}
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="label">District</label>
+                <div className="relative">
+                  <select className="input bg-[#141414]" value={form.district}
+                    onChange={e => setField('district', e.target.value)} disabled={!form.state || geoLoading.districts}>
+                    <option value="">{geoLoading.districts ? 'Loading...' : form.state ? 'Select district' : 'Select state first'}</option>
+                    {districts.map(d => <option key={d} value={d}>{d}</option>)}
+                  </select>
+                </div>
+              </div>
+              <div>
+                <label className="label">Block</label>
+                <div className="relative">
+                  <select className="input bg-[#141414]" value={form.block}
+                    onChange={e => setField('block', e.target.value)} disabled={!form.district || geoLoading.blocks}>
+                    <option value="">{geoLoading.blocks ? 'Loading...' : form.district ? 'Select block' : 'Select district first'}</option>
+                    {blocks.map(b => <option key={b} value={b}>{b}</option>)}
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="label">Pincode</label>
+                <input className="input" maxLength={6} value={form.pincode}
+                  onChange={e => setField('pincode', e.target.value.replace(/\D/g, ''))} />
+              </div>
+              <div>
+                <label className="label">Experience (yrs)</label>
+                <input type="number" className="input" value={form.experience}
+                  onChange={e => setField('experience', e.target.value)} />
+              </div>
+            </div>
+
             <div className="flex gap-2 pt-2">
               <button className="btn-primary" onClick={save} disabled={loading}>{loading ? 'Saving...' : 'Save'}</button>
               <button className="btn-ghost" onClick={() => setEditing(false)}>Cancel</button>
@@ -585,13 +690,16 @@ function WorkerProfile() {
         ) : (
           <div className="space-y-3 text-sm">
             {[
-              ['Worker Type', user?.workerTypeName || '—'],
-              ['Experience', `${user?.experience || 0} years`],
-              ['Address', user?.address],
-              ['Pincode', user?.pincode],
-              ['Labour Card', user?.labourCardNumber || 'Not provided'],
+              ['Worker Type',    user?.workerTypeName || '—'],
+              ['Experience',     `${user?.experience || 0} years`],
+              ['Address',        user?.address || '—'],
+              ['State',          user?.state    || '—'],
+              ['District',       user?.district || '—'],
+              ['Block',          user?.block    || '—'],
+              ['Pincode',        user?.pincode  || '—'],
+              ['Labour Card',    user?.labourCardNumber || 'Not provided'],
               ['Completed Jobs', user?.completedJobs || 0],
-              ['Member Since', formatDate(user?.createdAt)],
+              ['Member Since',   formatDate(user?.createdAt)],
             ].map(([k, v]) => (
               <div key={k} className="flex justify-between gap-4 py-2 border-b border-[#2a2a2a] last:border-0">
                 <span className="text-[#6b6b6b]">{k}</span>
