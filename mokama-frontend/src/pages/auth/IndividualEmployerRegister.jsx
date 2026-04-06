@@ -223,7 +223,7 @@ export default function IndividualEmployerRegister() {
           <ArrowLeft size={18} className="text-[#a3a3a3]" />
         </button>
         <div className="flex items-center gap-2">
-          <img src="/logo.png" alt="MoKama" className="h-8 w-8 rounded-lg object-cover" />
+          <img src="/logo.png" alt="MoKama" className="h-10 w-10" />
           <span className="font-bold text-white">MoKama</span>
         </div>
       </header>

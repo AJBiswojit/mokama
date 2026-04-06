@@ -29,15 +29,15 @@ export default function AdminLogin() {
       <header className="bg-[#0d0d0d] border-b border-[#1a1a1a] px-4 py-4 flex items-center gap-3">
         <Link to="/" className="p-2 hover:bg-[#1a1a1a] rounded-xl"><ArrowLeft size={18} className="text-[#a3a3a3]" /></Link>
         <div className="flex items-center gap-2">
-          <img src="/logo.png" alt="MoKama" className="h-8 w-8 rounded-lg object-cover" />
+          <img src="/logo.png" alt="MoKama" className="h-10 w-10" />
           <span className="font-bold text-white">MoKama</span>
         </div>
       </header>
       <div className="flex-1 flex items-center justify-center px-4 py-10">
         <div className="w-full max-w-sm">
           <div className="text-center mb-8">
-            <div className="w-14 h-14 bg-violet-500/10 border border-violet-500/20 rounded-2xl flex items-center justify-center mx-auto mb-4">
-              <Shield size={26} className="text-violet-400" />
+            <div className="w-14 h-14 flex items-center justify-center mx-auto mb-4">
+              <img src="/logo.png" alt="MoKama" className="h-10 w-10" />
             </div>
             <h1 className="text-2xl font-extrabold text-white">Admin Login</h1>
             <p className="text-[#6b6b6b] text-sm mt-1">Restricted access. Authorised personnel only.</p>

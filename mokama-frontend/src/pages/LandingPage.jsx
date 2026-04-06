@@ -43,7 +43,7 @@ export default function LandingPage() {
 
           {/* Logo */}
           <Link to="/" className="flex items-center gap-2 shrink-0">
-            <img src="/logo.png" alt="MoKama" className="h-9 w-9 rounded-xl object-cover" />
+            <img src="/logo.png" alt="MoKama" className="h-12 w-12" />
             <div>
               <div className="font-bold text-base text-white leading-none">MoKama</div>
               <div className="text-[10px] text-[#f97316] font-medium hidden sm:block">Kaam Ko Mukam Tak</div>

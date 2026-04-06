@@ -61,7 +61,7 @@ export default function EmployerLogin() {
           <ArrowLeft size={18} className="text-[#a3a3a3]" />
         </Link>
         <div className="flex items-center gap-2">
-          <img src="/logo.png" alt="MoKama" className="h-8 w-8 rounded-lg object-cover" />
+          <img src="/logo.png" alt="MoKama" className="h-10 w-10" />
           <span className="font-bold text-white">MoKama</span>
         </div>
       </header>
@@ -69,8 +69,8 @@ export default function EmployerLogin() {
       <div className="flex-1 flex items-center justify-center px-4 py-10">
         <div className="w-full max-w-sm">
           <div className="text-center mb-8">
-            <div className="w-14 h-14 bg-[#f97316]/10 border border-[#f97316]/20 rounded-2xl flex items-center justify-center mx-auto mb-4">
-              <Briefcase size={26} className="text-[#f97316]" />
+            <div className="w-14 h-14 flex items-center justify-center mx-auto mb-4">
+              <img src="/logo.png" alt="MoKama" className="h-10 w-10" />
             </div>
             <h1 className="text-2xl font-extrabold text-white">Employer Login</h1>
             <p className="text-[#6b6b6b] text-sm mt-1">Enter your mobile number to receive an email OTP</p>
