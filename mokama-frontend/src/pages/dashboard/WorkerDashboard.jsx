@@ -528,15 +528,15 @@ function WorkerProfile() {
   const { user, updateUser } = useAuth()
   const [editing, setEditing] = useState(false)
   const [form, setForm] = useState({
-    name:     user?.name     || '',
-    address:  user?.address  || '',
-    state:    user?.state    || '',
-    district: user?.district || '',
-    block:    user?.block    || '',
-    pincode:  user?.pincode  || '',
-    experience: user?.experience || 0,
+    address:         user?.address         || '',
+    state:           user?.state           || '',
+    district:        user?.district        || '',
+    block:           user?.block           || '',
+    pincode:         user?.pincode         || '',
+    experience:      user?.experience      || 0,
+    labourCardNumber: user?.labourCardNumber || '',
   })
-  const [loading, setLoading]   = useState(false)
+  const [loading, setLoading]         = useState(false)
   const [honourLogs, setHonourLogs]   = useState([])
   const [logsLoading, setLogsLoading] = useState(true)
 
@@ -602,6 +602,11 @@ function WorkerProfile() {
     finally { setLoading(false) }
   }
 
+  const formatDob = (dob) => {
+    if (!dob) return '—'
+    return new Date(dob).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })
+  }
+
   return (
     <div className="space-y-6 animate-fade-in max-w-xl">
       <div className="flex items-center justify-between">
@@ -623,13 +628,30 @@ function WorkerProfile() {
 
         {editing ? (
           <div className="space-y-3">
-            <div>
-              <label className="label">Name</label>
-              <input className="input" value={form.name} onChange={e => setField('name', e.target.value)} />
+
+            {/* ── Locked identity fields ── */}
+            <div className="p-3 bg-[#1a1a1a] border border-[#2a2a2a] rounded-xl space-y-2.5">
+              <p className="text-xs text-[#4a4a4a] flex items-center gap-1.5">
+                🔒 <span>These fields cannot be changed after registration</span>
+              </p>
+              {[
+                ['Full Name',     user?.name       || '—'],
+                ["Father's Name", user?.fatherName  || '—'],
+                ['Gender',        user?.gender      || '—'],
+                ['Date of Birth', formatDob(user?.dob)],
+              ].map(([k, v]) => (
+                <div key={k} className="flex justify-between text-sm">
+                  <span className="text-[#4a4a4a]">{k}</span>
+                  <span className="text-[#6b6b6b] capitalize">{v}</span>
+                </div>
+              ))}
             </div>
+
+            {/* ── Editable fields ── */}
             <div>
               <label className="label">Address</label>
-              <textarea className="input resize-none min-h-[70px]" value={form.address} onChange={e => setField('address', e.target.value)} />
+              <textarea className="input resize-none min-h-[70px]" value={form.address}
+                onChange={e => setField('address', e.target.value)} />
             </div>
 
             {/* State */}
@@ -649,23 +671,19 @@ function WorkerProfile() {
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className="label">District</label>
-                <div className="relative">
-                  <select className="input bg-[#141414]" value={form.district}
-                    onChange={e => setField('district', e.target.value)} disabled={!form.state || geoLoading.districts}>
-                    <option value="">{geoLoading.districts ? 'Loading...' : form.state ? 'Select district' : 'Select state first'}</option>
-                    {districts.map(d => <option key={d} value={d}>{d}</option>)}
-                  </select>
-                </div>
+                <select className="input bg-[#141414]" value={form.district}
+                  onChange={e => setField('district', e.target.value)} disabled={!form.state || geoLoading.districts}>
+                  <option value="">{geoLoading.districts ? 'Loading...' : form.state ? 'Select district' : 'Select state first'}</option>
+                  {districts.map(d => <option key={d} value={d}>{d}</option>)}
+                </select>
               </div>
               <div>
                 <label className="label">Block</label>
-                <div className="relative">
-                  <select className="input bg-[#141414]" value={form.block}
-                    onChange={e => setField('block', e.target.value)} disabled={!form.district || geoLoading.blocks}>
-                    <option value="">{geoLoading.blocks ? 'Loading...' : form.district ? 'Select block' : 'Select district first'}</option>
-                    {blocks.map(b => <option key={b} value={b}>{b}</option>)}
-                  </select>
-                </div>
+                <select className="input bg-[#141414]" value={form.block}
+                  onChange={e => setField('block', e.target.value)} disabled={!form.district || geoLoading.blocks}>
+                  <option value="">{geoLoading.blocks ? 'Loading...' : form.district ? 'Select block' : 'Select district first'}</option>
+                  {blocks.map(b => <option key={b} value={b}>{b}</option>)}
+                </select>
               </div>
             </div>
 
@@ -677,9 +695,16 @@ function WorkerProfile() {
               </div>
               <div>
                 <label className="label">Experience (yrs)</label>
-                <input type="number" className="input" value={form.experience}
+                <input type="number" className="input" min={0} max={50} value={form.experience}
                   onChange={e => setField('experience', e.target.value)} />
               </div>
+            </div>
+
+            <div>
+              <label className="label">Labour Card Number <span className="text-[#3a3a3a] text-xs">(optional)</span></label>
+              <input className="input" placeholder="Government-issued labour card (if any)"
+                value={form.labourCardNumber}
+                onChange={e => setField('labourCardNumber', e.target.value)} />
             </div>
 
             <div className="flex gap-2 pt-2">
@@ -690,20 +715,24 @@ function WorkerProfile() {
         ) : (
           <div className="space-y-3 text-sm">
             {[
-              ['Worker Type',    user?.workerTypeName || '—'],
+              ['Full Name',      user?.name           || '—'],
+              ["Father's Name",  user?.fatherName      || '—'],
+              ['Gender',         user?.gender          || '—'],
+              ['Date of Birth',  formatDob(user?.dob)],
+              ['Worker Type',    user?.workerTypeName  || '—'],
               ['Experience',     `${user?.experience || 0} years`],
-              ['Address',        user?.address || '—'],
-              ['State',          user?.state    || '—'],
-              ['District',       user?.district || '—'],
-              ['Block',          user?.block    || '—'],
-              ['Pincode',        user?.pincode  || '—'],
+              ['Address',        user?.address         || '—'],
+              ['State',          user?.state           || '—'],
+              ['District',       user?.district        || '—'],
+              ['Block',          user?.block           || '—'],
+              ['Pincode',        user?.pincode         || '—'],
               ['Labour Card',    user?.labourCardNumber || 'Not provided'],
-              ['Completed Jobs', user?.completedJobs || 0],
+              ['Completed Jobs', user?.completedJobs   || 0],
               ['Member Since',   formatDate(user?.createdAt)],
             ].map(([k, v]) => (
               <div key={k} className="flex justify-between gap-4 py-2 border-b border-[#2a2a2a] last:border-0">
                 <span className="text-[#6b6b6b]">{k}</span>
-                <span className="text-white font-medium text-right">{v}</span>
+                <span className="text-white font-medium text-right capitalize">{v}</span>
               </div>
             ))}
           </div>
