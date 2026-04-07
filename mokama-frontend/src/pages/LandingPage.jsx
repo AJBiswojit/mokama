@@ -117,9 +117,12 @@ export default function LandingPage() {
         <div className="absolute inset-0 pointer-events-none">
           <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[400px] sm:w-[600px] h-[350px] bg-[#f97316]/6 rounded-full blur-3xl" />
         </div>
-        <div className="relative max-w-3xl mx-auto text-center mb-10">
+        <div className="relative max-w-3xl mx-auto image-center text-center mb-10">
           <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-[#f97316]/10 border border-[#f97316]/20 text-[#f97316] rounded-full text-xs font-bold mb-5">
             <Zap size={11} /> India's Daily Wage Platform · Free to Join
+          </div>   
+          <div>
+            <img src="/logo.png" alt="MoKama" className="inline-flex items-center w-[200px] h-[200px]" />
           </div>
           <h1 className="text-3xl sm:text-5xl font-extrabold text-white leading-tight mb-4 tracking-tight">
             Connecting <span className="text-[#f97316]">Workers</span> &{' '}
@@ -407,7 +410,7 @@ export default function LandingPage() {
           <div className="flex flex-col md:flex-row items-start justify-between gap-8 mb-8">
             <div className="max-w-xs">
               <div className="flex items-center gap-2.5 mb-3">
-                <img src="/logo.png" alt="MoKama" className="h-9 w-9 rounded-xl object-cover" />
+                <img src="/logo.png" alt="MoKama" className="h-10 w-10" />
                 <div>
                   <div className="font-bold text-lg text-white">MoKama</div>
                   <div className="text-[10px] text-[#f97316]">Kaam Ko Mukam Tak</div>
