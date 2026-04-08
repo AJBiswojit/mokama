@@ -52,7 +52,7 @@ export default function LandingPage() {
 
           {/* Desktop center nav */}
           <nav className="hidden lg:flex items-center gap-1">
-            {[['Home','#'],['About Us','#about'],['Contact','#contact']].map(([l,h]) => (
+            {[['Home', '#'], ['About Us', '#about'], ['Contact', '#contact']].map(([l, h]) => (
               <a key={l} href={h} className="text-sm font-medium text-[#a3a3a3] hover:text-white px-3 py-2 rounded-xl hover:bg-[#1a1a1a] transition-all">{l}</a>
             ))}
           </nav>
@@ -60,13 +60,13 @@ export default function LandingPage() {
           {/* Desktop right buttons */}
           <div className="hidden md:flex items-center gap-2">
             <NavDropdown label="Sign Up" items={[
-              { label:'Worker',   href:'/worker/register',   icon:<HardHat size={14} className="text-[#f97316]" /> },
-              { label:'Employer', href:'/employer/register', icon:<Building2 size={14} className="text-[#f97316]" /> },
+              { label: 'Worker', href: '/worker/register', icon: <HardHat size={14} className="text-[#f97316]" /> },
+              { label: 'Employer', href: '/employer/register', icon: <Building2 size={14} className="text-[#f97316]" /> },
             ]} />
             <NavDropdown label="Log In" items={[
-              { label:'Worker',   href:'/worker/login',   icon:<HardHat size={14} className="text-[#f97316]" /> },
-              { label:'Employer', href:'/employer/login', icon:<Building2 size={14} className="text-[#f97316]" /> },
-              { label:'Admin',    href:'/admin/login',    icon:<Shield size={14} className="text-violet-400" /> },
+              { label: 'Worker', href: '/worker/login', icon: <HardHat size={14} className="text-[#f97316]" /> },
+              { label: 'Employer', href: '/employer/login', icon: <Building2 size={14} className="text-[#f97316]" /> },
+              { label: 'Admin', href: '/admin/login', icon: <Shield size={14} className="text-violet-400" /> },
             ]} />
           </div>
 
@@ -80,14 +80,14 @@ export default function LandingPage() {
         {/* Mobile menu */}
         {mobileOpen && (
           <div className="md:hidden border-t border-[#1e1e1e] bg-[#0d0d0d] px-4 py-4 space-y-2">
-            {[['Home','#'],['About Us','#about'],['Contact','#contact']].map(([l,h]) => (
+            {[['Home', '#'], ['About Us', '#about'], ['Contact', '#contact']].map(([l, h]) => (
               <a key={l} href={h}
                 className="block py-2.5 px-3 text-sm text-[#a3a3a3] hover:text-white rounded-xl hover:bg-[#1a1a1a]"
                 onClick={() => setMobileOpen(false)}>{l}</a>
             ))}
             <hr className="border-[#1e1e1e] !my-3" />
             <div className="grid grid-cols-2 gap-2">
-              <Link to="/worker/register"   onClick={() => setMobileOpen(false)}
+              <Link to="/worker/register" onClick={() => setMobileOpen(false)}
                 className="flex items-center justify-center gap-1.5 py-2.5 bg-[#f97316] text-white font-bold rounded-xl text-xs hover:bg-[#fb923c] transition-all">
                 <HardHat size={13} /> Worker Sign Up
               </Link>
@@ -95,7 +95,7 @@ export default function LandingPage() {
                 className="flex items-center justify-center gap-1.5 py-2.5 bg-[#141414] border border-[#2a2a2a] text-white font-semibold rounded-xl text-xs hover:border-[#f97316]/40 transition-all">
                 <Building2 size={13} /> Employer Sign Up
               </Link>
-              <Link to="/worker/login"   onClick={() => setMobileOpen(false)}
+              <Link to="/worker/login" onClick={() => setMobileOpen(false)}
                 className="flex items-center justify-center gap-1.5 py-2.5 bg-[#141414] border border-[#2a2a2a] text-[#a3a3a3] rounded-xl text-xs hover:text-white transition-all">
                 Worker Login
               </Link>
@@ -120,12 +120,12 @@ export default function LandingPage() {
         <div className="relative max-w-3xl mx-auto image-center text-center mb-10">
           <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-[#f97316]/10 border border-[#f97316]/20 text-[#f97316] rounded-full text-xs font-bold mb-5">
             <Zap size={11} /> India's Daily Wage Platform · Free to Join
-          </div>   
+          </div>
           <div>
-            <img src="/logo.png" alt="MoKama" className="inline-flex items-center w-[350px] h-[200px]" />
-            <p className="text-[#a3a3a3] text-white sm:text-sm mb-5">
-            TAKING WORK TO ITS DESTINATION
-          </p>
+            <img src="/logo.png" alt="MoKama" className="inline-flex items-center w-[260px] h-[150px]" />
+            <div className="text-[#a3a3a3] text-white mb-5 text-xs">
+              TAKING WORK TO ITS DESTINATION
+            </div>
           </div>
           <h1 className="text-3xl sm:text-5xl font-extrabold text-white leading-tight mb-4 tracking-tight">
             Connecting <span className="text-[#f97316]">Workers</span> &{' '}
@@ -224,13 +224,13 @@ export default function LandingPage() {
               </div>
               <div className="space-y-2.5">
                 {[
-                  ['🔨','Mason','Construction Worker'],
-                  ['🪚','Carpenter','Wood & Furniture Work'],
-                  ['🔧','Plumber','Water & Pipe Work'],
-                  ['⚡','Electrician','Electrical Work'],
-                  ['🌾','Farm Worker','Agricultural Labour'],
-                  ['📦','Helper','General Labour'],
-                ].map(([e,l,d]) => (
+                  ['🔨', 'Mason', 'Construction Worker'],
+                  ['🪚', 'Carpenter', 'Wood & Furniture Work'],
+                  ['🔧', 'Plumber', 'Water & Pipe Work'],
+                  ['⚡', 'Electrician', 'Electrical Work'],
+                  ['🌾', 'Farm Worker', 'Agricultural Labour'],
+                  ['📦', 'Helper', 'General Labour'],
+                ].map(([e, l, d]) => (
                   <div key={l} className="flex items-center gap-3 py-2 border-b border-[#1e1e1e] last:border-0">
                     <span className="text-lg">{e}</span>
                     <div className="min-w-0">
@@ -253,13 +253,13 @@ export default function LandingPage() {
               </div>
               <div className="space-y-2.5">
                 {[
-                  ['🏠','House Construction','Residential Building'],
-                  ['🏢','Commercial Projects','Office & Buildings'],
-                  ['🌾','Agricultural Work','Farm & Field Labour'],
-                  ['🏭','Factory Work','Industrial Labour'],
-                  ['🛣️','Road & Civil Work','Infrastructure Projects'],
-                  ['🔧','Home Maintenance','Repairs & Upkeep'],
-                ].map(([e,l,d]) => (
+                  ['🏠', 'House Construction', 'Residential Building'],
+                  ['🏢', 'Commercial Projects', 'Office & Buildings'],
+                  ['🌾', 'Agricultural Work', 'Farm & Field Labour'],
+                  ['🏭', 'Factory Work', 'Industrial Labour'],
+                  ['🛣️', 'Road & Civil Work', 'Infrastructure Projects'],
+                  ['🔧', 'Home Maintenance', 'Repairs & Upkeep'],
+                ].map(([e, l, d]) => (
                   <div key={l} className="flex items-center gap-3 py-2 border-b border-[#1e1e1e] last:border-0">
                     <span className="text-lg">{e}</span>
                     <div className="min-w-0">
@@ -291,10 +291,10 @@ export default function LandingPage() {
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               {[
-                { n:'1', e:'📱', t:'Register', d:'Sign up with your mobile number and email. Verify with OTP.', c:'bg-[#f97316]' },
-                { n:'2', e:'🔔', t:'Get Notified', d:'Receive alerts when a nearby job matches your skill and location.', c:'bg-[#fb923c]' },
-                { n:'3', e:'💰', t:'Work & Get Paid', d:'Accept the job, complete the work, confirm payment safely on the app.', c:'bg-[#fbbf24]' },
-              ].map((s,i) => (
+                { n: '1', e: '📱', t: 'Register', d: 'Sign up with your mobile number and email. Verify with OTP.', c: 'bg-[#f97316]' },
+                { n: '2', e: '🔔', t: 'Get Notified', d: 'Receive alerts when a nearby job matches your skill and location.', c: 'bg-[#fb923c]' },
+                { n: '3', e: '💰', t: 'Work & Get Paid', d: 'Accept the job, complete the work, confirm payment safely on the app.', c: 'bg-[#fbbf24]' },
+              ].map((s, i) => (
                 <div key={i} className="relative bg-[#141414] border border-[#2a2a2a] rounded-2xl p-5">
                   <div className={`w-7 h-7 ${s.c} rounded-full flex items-center justify-center text-white font-black text-xs mb-3`}>{s.n}</div>
                   <div className="text-2xl mb-2">{s.e}</div>
@@ -314,10 +314,10 @@ export default function LandingPage() {
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               {[
-                { n:'1', e:'📝', t:'Post a Job', d:'Register and post your job with required trade, wage per day, and location.', c:'bg-violet-600' },
-                { n:'2', e:'🔍', t:'Find Workers', d:'Browse verified available workers nearby. Check their honour score.', c:'bg-violet-500' },
-                { n:'3', e:'✅', t:'Hire & Pay', d:'Send a job request, confirm work started and completed, then confirm payment.', c:'bg-violet-400' },
-              ].map((s,i) => (
+                { n: '1', e: '📝', t: 'Post a Job', d: 'Register and post your job with required trade, wage per day, and location.', c: 'bg-violet-600' },
+                { n: '2', e: '🔍', t: 'Find Workers', d: 'Browse verified available workers nearby. Check their honour score.', c: 'bg-violet-500' },
+                { n: '3', e: '✅', t: 'Hire & Pay', d: 'Send a job request, confirm work started and completed, then confirm payment.', c: 'bg-violet-400' },
+              ].map((s, i) => (
                 <div key={i} className="relative bg-[#141414] border border-[#2a2a2a] rounded-2xl p-5">
                   <div className={`w-7 h-7 ${s.c} rounded-full flex items-center justify-center text-white font-black text-xs mb-3`}>{s.n}</div>
                   <div className="text-2xl mb-2">{s.e}</div>
@@ -340,11 +340,11 @@ export default function LandingPage() {
           </div>
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
             {[
-              { e:'⭐', t:'Honour Score',      d:'Every worker and employer has a live trust rating based on their behaviour.' },
-              { e:'🔒', t:'OTP Verified',      d:'All users are verified via email OTP. Every profile is real and authenticated.' },
-              { e:'💰', t:'Safe Payment',      d:'Payment confirmed by both parties — no disputes, no cheating.' },
-              { e:'🛡️', t:'Admin Protection', d:'Dedicated admin monitors the platform and resolves disputes in real time.' },
-            ].map((f,i) => (
+              { e: '⭐', t: 'Honour Score', d: 'Every worker and employer has a live trust rating based on their behaviour.' },
+              { e: '🔒', t: 'OTP Verified', d: 'All users are verified via email OTP. Every profile is real and authenticated.' },
+              { e: '💰', t: 'Safe Payment', d: 'Payment confirmed by both parties — no disputes, no cheating.' },
+              { e: '🛡️', t: 'Admin Protection', d: 'Dedicated admin monitors the platform and resolves disputes in real time.' },
+            ].map((f, i) => (
               <div key={i} className="bg-[#141414] border border-[#2a2a2a] rounded-2xl p-4 sm:p-6 text-center hover:border-[#f97316]/25 transition-all">
                 <div className="text-3xl sm:text-4xl mb-3">{f.e}</div>
                 <div className="font-bold text-white text-xs sm:text-sm mb-1.5">{f.t}</div>
@@ -361,10 +361,10 @@ export default function LandingPage() {
             </p>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
               {[
-                { r:'85-100', l:'Excellent', c:'text-emerald-400', b:'bg-emerald-500/10 border-emerald-500/20' },
-                { r:'70-84',  l:'Good',      c:'text-lime-400',    b:'bg-lime-500/10 border-lime-500/20' },
-                { r:'50-69',  l:'Average',   c:'text-amber-400',   b:'bg-amber-500/10 border-amber-500/20' },
-                { r:'0-49',   l:'Poor',      c:'text-red-400',     b:'bg-red-500/10 border-red-500/20' },
+                { r: '85-100', l: 'Excellent', c: 'text-emerald-400', b: 'bg-emerald-500/10 border-emerald-500/20' },
+                { r: '70-84', l: 'Good', c: 'text-lime-400', b: 'bg-lime-500/10 border-lime-500/20' },
+                { r: '50-69', l: 'Average', c: 'text-amber-400', b: 'bg-amber-500/10 border-amber-500/20' },
+                { r: '0-49', l: 'Poor', c: 'text-red-400', b: 'bg-red-500/10 border-red-500/20' },
               ].map(s => (
                 <div key={s.r} className={`border rounded-2xl px-3 py-3 text-center ${s.b}`}>
                   <div className={`text-base font-black ${s.c}`}>{s.r}</div>
@@ -427,21 +427,21 @@ export default function LandingPage() {
                 <div className="text-white font-semibold mb-2.5 text-sm">Workers</div>
                 <div className="space-y-1.5">
                   <div><Link to="/worker/register" className="hover:text-[#f97316] transition-colors text-xs">Register</Link></div>
-                  <div><Link to="/worker/login"    className="hover:text-[#f97316] transition-colors text-xs">Login</Link></div>
+                  <div><Link to="/worker/login" className="hover:text-[#f97316] transition-colors text-xs">Login</Link></div>
                 </div>
               </div>
               <div>
                 <div className="text-white font-semibold mb-2.5 text-sm">Employers</div>
                 <div className="space-y-1.5">
                   <div><Link to="/employer/register" className="hover:text-[#f97316] transition-colors text-xs">Register</Link></div>
-                  <div><Link to="/employer/login"    className="hover:text-[#f97316] transition-colors text-xs">Login</Link></div>
+                  <div><Link to="/employer/login" className="hover:text-[#f97316] transition-colors text-xs">Login</Link></div>
                 </div>
               </div>
               <div>
                 <div className="text-white font-semibold mb-2.5 text-sm">Legal</div>
                 <div className="space-y-1.5">
                   <div><a href="#about" className="hover:text-[#f97316] transition-colors text-xs">About Us</a></div>
-                  <div><a href="#"      className="hover:text-[#f97316] transition-colors text-xs">Privacy Policy</a></div>
+                  <div><a href="#" className="hover:text-[#f97316] transition-colors text-xs">Privacy Policy</a></div>
                 </div>
               </div>
               <div>
