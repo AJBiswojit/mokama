@@ -13,7 +13,7 @@ export default function EmployerTypeSelect() {
           <ArrowLeft size={18} className="text-[#a3a3a3]" />
         </Link>
         <div className="flex items-center gap-2">
-          <img src="/logo.png" alt="MoKama" className="h-10 w-10" />
+          <img src="/logo.png" alt="MoKama" className="h-9 w-18" />
           <span className="font-bold text-white">MoKama</span>
         </div>
       </header>

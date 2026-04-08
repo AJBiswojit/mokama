@@ -441,13 +441,18 @@ function JobHistory() {
 function EmployerProfile() {
   const { user, updateUser } = useAuth()
   const [editing, setEditing] = useState(false)
+  const isOrg = user?.employerType === 'organisation'
+
   const [form, setForm] = useState({
-    name:     user?.name     || '',
-    address:  user?.address  || '',
-    state:    user?.state    || '',
-    district: user?.district || '',
-    block:    user?.block    || '',
-    pincode:  user?.pincode  || '',
+    address:             user?.address             || '',
+    state:               user?.state               || '',
+    district:            user?.district            || '',
+    block:               user?.block               || '',
+    pincode:             user?.pincode             || '',
+    // Individual editable
+    labourCardNumber:    user?.labourCardNumber     || '',
+    // Organisation editable
+    labourLicenseNumber: user?.labourLicenseNumber  || '',
   })
   const [loading, setLoading]         = useState(false)
   const [honourLogs, setHonourLogs]   = useState([])
@@ -515,7 +520,24 @@ function EmployerProfile() {
     finally { setLoading(false) }
   }
 
-  const isOrg = user?.employerType === 'organisation'
+  const formatDate = (d) => {
+    if (!d) return '—'
+    return new Date(d).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })
+  }
+
+  // Locked fields differ by type
+  const lockedFields = isOrg
+    ? [
+        ['Organisation Name',   user?.name              || '—'],
+        ['Establishment Date',  formatDate(user?.establishmentDate)],
+        ['GST Number',          user?.gstNumber          || 'Not provided'],
+      ]
+    : [
+        ['Full Name',           user?.name              || '—'],
+        ["Father's Name",       user?.fatherName         || '—'],
+        ['Gender',              user?.gender             || '—'],
+        ['Date of Birth',       formatDate(user?.dob)],
+      ]
 
   return (
     <div className="space-y-6 animate-fade-in max-w-xl">
@@ -523,9 +545,10 @@ function EmployerProfile() {
         <h1 className="text-xl font-extrabold text-white">My Profile</h1>
         {!editing && <button className="btn-secondary text-xs" onClick={() => setEditing(true)}>Edit</button>}
       </div>
+
       <div className="card">
         <div className="flex items-center gap-4 mb-6">
-          <div className="w-16 h-16 bg-brand-100 rounded-2xl flex items-center justify-center text-brand-700 text-2xl font-bold">
+          <div className="w-16 h-16 bg-[#f97316]/10 border border-[#f97316]/20 rounded-2xl flex items-center justify-center text-[#f97316] text-2xl font-bold">
             {user?.name?.[0]?.toUpperCase()}
           </div>
           <div>
@@ -538,13 +561,25 @@ function EmployerProfile() {
 
         {editing ? (
           <div className="space-y-3">
-            <div>
-              <label className="label">{isOrg ? 'Organisation Name' : 'Full Name'}</label>
-              <input className="input" value={form.name} onChange={e => setField('name', e.target.value)} />
+
+            {/* ── Locked identity fields ── */}
+            <div className="p-3 bg-[#1a1a1a] border border-[#2a2a2a] rounded-xl space-y-2.5">
+              <p className="text-xs text-[#4a4a4a] flex items-center gap-1.5">
+                🔒 <span>These fields cannot be changed after registration</span>
+              </p>
+              {lockedFields.map(([k, v]) => (
+                <div key={k} className="flex justify-between text-sm">
+                  <span className="text-[#4a4a4a]">{k}</span>
+                  <span className="text-[#6b6b6b] capitalize">{v}</span>
+                </div>
+              ))}
             </div>
+
+            {/* ── Editable fields ── */}
             <div>
               <label className="label">Address</label>
-              <textarea className="input resize-none min-h-[70px]" value={form.address} onChange={e => setField('address', e.target.value)} />
+              <textarea className="input resize-none min-h-[70px]" value={form.address}
+                onChange={e => setField('address', e.target.value)} />
             </div>
 
             {/* State */}
@@ -586,6 +621,26 @@ function EmployerProfile() {
                 onChange={e => setField('pincode', e.target.value.replace(/\D/g, ''))} />
             </div>
 
+            {/* Labour card — individual only */}
+            {!isOrg && (
+              <div>
+                <label className="label">Labour Card Number <span className="text-[#3a3a3a] text-xs">(optional)</span></label>
+                <input className="input" placeholder="Government-issued labour card (if any)"
+                  value={form.labourCardNumber}
+                  onChange={e => setField('labourCardNumber', e.target.value)} />
+              </div>
+            )}
+
+            {/* Labour license — organisation only */}
+            {isOrg && (
+              <div>
+                <label className="label">Labour License Number <span className="text-[#3a3a3a] text-xs">(optional)</span></label>
+                <input className="input" placeholder="Govt issued labour license (if any)"
+                  value={form.labourLicenseNumber}
+                  onChange={e => setField('labourLicenseNumber', e.target.value)} />
+              </div>
+            )}
+
             <div className="flex gap-2 pt-2">
               <button className="btn-primary" onClick={save} disabled={loading}>{loading ? 'Saving...' : 'Save'}</button>
               <button className="btn-ghost" onClick={() => setEditing(false)}>Cancel</button>
@@ -594,22 +649,28 @@ function EmployerProfile() {
         ) : (
           <div className="space-y-3 text-sm">
             {[
-              ['Type',          user?.employerType === 'organisation' ? 'Organisation' : 'Individual'],
+              ['Type',          isOrg ? 'Organisation' : 'Individual'],
               ['Category',      user?.employerCategoryName || '—'],
               ['Subcategory',   user?.employerSubcategory  || '—'],
+              ...(isOrg ? [
+                ['Org Name',          user?.name                  || '—'],
+                ['Establishment Date',formatDate(user?.establishmentDate)],
+                ['GST Number',        user?.gstNumber              || 'Not provided'],
+                ['Labour License',    user?.labourLicenseNumber    || 'Not provided'],
+              ] : [
+                ['Full Name',         user?.name                  || '—'],
+                ["Father's Name",     user?.fatherName             || '—'],
+                ['Gender',            user?.gender                 || '—'],
+                ['Date of Birth',     formatDate(user?.dob)],
+                ['Labour Card',       user?.labourCardNumber       || 'Not provided'],
+              ]),
               ['Address',       user?.address  || '—'],
               ['State',         user?.state    || '—'],
               ['District',      user?.district || '—'],
               ['Block',         user?.block    || '—'],
               ['Pincode',       user?.pincode  || '—'],
-              ...(isOrg ? [
-                ['GST Number',      user?.gstNumber          || 'Not provided'],
-                ['Labour License',  user?.labourLicenseNumber || 'Not provided'],
-              ] : [
-                ['Labour Card',     user?.labourCardNumber    || 'Not provided'],
-              ]),
-              ['Completed Jobs', user?.completedJobs || 0],
-              ['Member Since',   formatDate(user?.createdAt)],
+              ['Completed Jobs',user?.completedJobs || 0],
+              ['Member Since',  formatDate(user?.createdAt)],
             ].map(([k, v]) => (
               <div key={k} className="flex justify-between gap-4 py-2 border-b border-[#2a2a2a] last:border-0">
                 <span className="text-[#6b6b6b]">{k}</span>

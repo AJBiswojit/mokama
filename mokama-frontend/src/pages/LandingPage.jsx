@@ -43,7 +43,7 @@ export default function LandingPage() {
 
           {/* Logo */}
           <Link to="/" className="flex items-center gap-2 shrink-0">
-            <img src="/logo.png" alt="MoKama" className="h-12 w-12" />
+            <img src="/logo.png" alt="MoKama" className="h-10 w-18" />
             <div>
               <div className="font-bold text-base text-white leading-none">MoKama</div>
               <div className="text-[10px] text-[#f97316] font-medium hidden sm:block">Kaam Ko Mukam Tak</div>
@@ -122,7 +122,10 @@ export default function LandingPage() {
             <Zap size={11} /> India's Daily Wage Platform · Free to Join
           </div>   
           <div>
-            <img src="/logo.png" alt="MoKama" className="inline-flex items-center w-[200px] h-[200px]" />
+            <img src="/logo.png" alt="MoKama" className="inline-flex items-center w-[350px] h-[200px]" />
+            <p className="text-[#a3a3a3] text-white sm:text-sm mb-5">
+            TAKING WORK TO ITS DESTINATION
+          </p>
           </div>
           <h1 className="text-3xl sm:text-5xl font-extrabold text-white leading-tight mb-4 tracking-tight">
             Connecting <span className="text-[#f97316]">Workers</span> &{' '}
@@ -410,7 +413,7 @@ export default function LandingPage() {
           <div className="flex flex-col md:flex-row items-start justify-between gap-8 mb-8">
             <div className="max-w-xs">
               <div className="flex items-center gap-2.5 mb-3">
-                <img src="/logo.png" alt="MoKama" className="h-10 w-10" />
+                <img src="/logo.png" alt="MoKama" className="h-9 w-18" />
                 <div>
                   <div className="font-bold text-lg text-white">MoKama</div>
                   <div className="text-[10px] text-[#f97316]">Kaam Ko Mukam Tak</div>

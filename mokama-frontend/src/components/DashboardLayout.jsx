@@ -67,8 +67,7 @@ export default function DashboardLayout({ navItems, children, role }) {
     <div className="flex flex-col h-full bg-[#0d0d0d]">
       {/* Brand */}
       <div className="flex items-center gap-2.5 px-4 py-4 border-b border-[#1e1e1e]">
-        <img src="/logo.png" alt="MoKama"
-          className="h-10 w-10 rounded-xl object-cover shrink-0" />
+        <img src="/logo.png" alt="MoKama" className="h-9 w-18" />
         <span className="font-bold text-lg text-white tracking-tight">MoKama</span>
       </div>
 
