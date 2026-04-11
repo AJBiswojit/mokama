@@ -33,45 +33,45 @@ export default function EmployerTypeSelect() {
             {/* Individual */}
             <button
               onClick={() => navigate('/employer/register/individual')}
-              className="w-full group bg-[#141414] border border-[#2a2a2a] hover:border-[#f97316] hover:bg-[#f97316]/5 rounded-2xl p-6 text-left transition-all duration-200 active:scale-[0.99]"
+              className="w-full group bg-[#141414] border border-[#2a2a2a] hover:border-[#ff2400] hover:bg-[#ff2400]/5 rounded-2xl p-6 text-left transition-all duration-200 active:scale-[0.99]"
             >
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 rounded-xl bg-[#f97316]/10 border border-[#f97316]/20 flex items-center justify-center group-hover:bg-[#f97316]/20 transition-colors">
-                    <User size={22} className="text-[#f97316]" />
+                  <div className="w-12 h-12 rounded-xl bg-[#ff2400]/10 border border-[#ff2400]/20 flex items-center justify-center group-hover:bg-[#ff2400]/20 transition-colors">
+                    <User size={22} className="text-[#ff2400]" />
                   </div>
                   <div>
                     <p className="font-bold text-white text-base">Individual</p>
                     <p className="text-[#6b6b6b] text-xs mt-0.5">Home owner, farmer, shop owner</p>
                   </div>
                 </div>
-                <ArrowRight size={18} className="text-[#3a3a3a] group-hover:text-[#f97316] transition-colors" />
+                <ArrowRight size={18} className="text-[#3a3a3a] group-hover:text-[#ff2400] transition-colors" />
               </div>
             </button>
 
             {/* Organisation */}
             <button
               onClick={() => navigate('/employer/register/organisation')}
-              className="w-full group bg-[#141414] border border-[#2a2a2a] hover:border-[#f97316] hover:bg-[#f97316]/5 rounded-2xl p-6 text-left transition-all duration-200 active:scale-[0.99]"
+              className="w-full group bg-[#141414] border border-[#2a2a2a] hover:border-[#ff2400] hover:bg-[#ff2400]/5 rounded-2xl p-6 text-left transition-all duration-200 active:scale-[0.99]"
             >
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 rounded-xl bg-[#f97316]/10 border border-[#f97316]/20 flex items-center justify-center group-hover:bg-[#f97316]/20 transition-colors">
-                    <Building2 size={22} className="text-[#f97316]" />
+                  <div className="w-12 h-12 rounded-xl bg-[#ff2400]/10 border border-[#ff2400]/20 flex items-center justify-center group-hover:bg-[#ff2400]/20 transition-colors">
+                    <Building2 size={22} className="text-[#ff2400]" />
                   </div>
                   <div>
                     <p className="font-bold text-white text-base">Organisation</p>
                     <p className="text-[#6b6b6b] text-xs mt-0.5">Contractor, company, institution, NGO</p>
                   </div>
                 </div>
-                <ArrowRight size={18} className="text-[#3a3a3a] group-hover:text-[#f97316] transition-colors" />
+                <ArrowRight size={18} className="text-[#3a3a3a] group-hover:text-[#ff2400] transition-colors" />
               </div>
             </button>
           </div>
 
           <p className="text-center text-sm text-[#6b6b6b] mt-8">
             Already registered?{' '}
-            <Link to="/employer/login" className="text-[#f97316] font-semibold hover:underline">
+            <Link to="/employer/login" className="text-[#ff2400] font-semibold hover:underline">
               Login here
             </Link>
           </p>

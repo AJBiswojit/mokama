@@ -5,18 +5,18 @@ export default {
     extend: {
       // ─── Brand palette ──────────────────────────────────────────────
       colors: {
-        // Orange accent — used for highlights only, not everywhere
+        // Scarlet red — primary brand colour
         brand: {
-          50:  '#fff3eb',
-          100: '#ffe0c7',
-          200: '#ffba8a',
-          300: '#ff9147',
-          400: '#ff7520',
-          500: '#FF6A00',   // primary brand orange
-          600: '#e05d00',
-          700: '#b84c00',
-          800: '#8f3c00',
-          900: '#6b2d00',
+          50:  '#fff0ed',
+          100: '#ffd6cc',
+          200: '#ffaa99',
+          300: '#ff7766',
+          400: '#ff4433',
+          500: '#ff2400',   // primary brand scarlet
+          600: '#e02000',
+          700: '#b81a00',
+          800: '#8f1400',
+          900: '#6b0f00',
         },
         // Dark backgrounds
         dark: {
@@ -58,12 +58,12 @@ export default {
         // Card shadow — barely visible on dark bg
         'card':       '0 1px 3px rgba(0,0,0,0.5), 0 1px 2px rgba(0,0,0,0.3)',
         'card-hover': '0 8px 24px rgba(0,0,0,0.6), 0 2px 8px rgba(0,0,0,0.4)',
-        // Orange glow — used on primary buttons and active elements
-        'glow':       '0 0 20px rgba(255,106,0,0.35)',
-        'glow-sm':    '0 0 10px rgba(255,106,0,0.25)',
-        'glow-lg':    '0 0 40px rgba(255,106,0,0.4)',
+        // Scarlet glow — used on primary buttons and active elements
+        'glow':       '0 0 20px rgba(255,36,0,0.35)',
+        'glow-sm':    '0 0 10px rgba(255,36,0,0.25)',
+        'glow-lg':    '0 0 40px rgba(255,36,0,0.4)',
         // Inner glow for active sidebar items
-        'glow-inner': 'inset 0 0 12px rgba(255,106,0,0.08)',
+        'glow-inner': 'inset 0 0 12px rgba(255,36,0,0.08)',
       },
 
       // ─── Animations ─────────────────────────────────────────────────
@@ -81,8 +81,8 @@ export default {
           '100%': { opacity: '1', transform: 'scale(1)' },
         },
         'pulse-glow': {
-          '0%, 100%': { boxShadow: '0 0 12px rgba(255,106,0,0.2)' },
-          '50%':      { boxShadow: '0 0 24px rgba(255,106,0,0.45)' },
+          '0%, 100%': { boxShadow: '0 0 12px rgba(255,36,0,0.2)' },
+          '50%':      { boxShadow: '0 0 24px rgba(255,36,0,0.45)' },
         },
         'shimmer': {
           '0%':   { backgroundPosition: '-200% 0' },
@@ -105,8 +105,8 @@ export default {
 
       // ─── Background gradients ────────────────────────────────────────
       backgroundImage: {
-        'brand-gradient':   'linear-gradient(135deg, #FF6A00 0%, #FF8C00 100%)',
-        'brand-gradient-r': 'linear-gradient(to right, #FF6A00, #FF8C00)',
+        'brand-gradient':   'linear-gradient(135deg, #ff2400 0%, #ff4422 100%)',
+        'brand-gradient-r': 'linear-gradient(to right, #ff2400, #ff4422)',
         'dark-gradient':    'linear-gradient(180deg, #111111 0%, #0A0A0A 100%)',
         'card-gradient':    'linear-gradient(145deg, #1A1A1A 0%, #141414 100%)',
       },

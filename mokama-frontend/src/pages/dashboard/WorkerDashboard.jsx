@@ -26,8 +26,8 @@ const NAV = [
 /* ─── Stat Card ─── */
 function StatCard({ label, value, icon, color = 'brand', sub }) {
   const colors = {
-    brand: 'bg-[#f97316]/10 text-[#f97316]',
-    amber: 'bg-[#f97316]/10 text-[#fb923c]',
+    brand: 'bg-[#ff2400]/10 text-[#ff2400]',
+    amber: 'bg-[#ff2400]/10 text-[#ff3a1a]',
     violet: 'bg-violet-500/10 text-violet-400',
     emerald: 'bg-emerald-500/10 text-emerald-400',
   }
@@ -102,10 +102,10 @@ function Overview() {
       </div>
 
       {stats?.activeJob && (
-        <div className="card border-l-4 border-[#f97316]">
+        <div className="card border-l-4 border-[#ff2400]">
           <div className="flex items-start justify-between">
             <div>
-              <div className="text-xs text-[#f97316] font-semibold uppercase tracking-wide mb-1">Active Job</div>
+              <div className="text-xs text-[#ff2400] font-semibold uppercase tracking-wide mb-1">Active Job</div>
               <div className="font-bold text-white text-lg">{stats.activeJob.title}</div>
               <div className="flex flex-wrap items-center gap-3 mt-2 text-sm text-[#6b6b6b]">
                 <span className="flex items-center gap-1"><Briefcase size={13} /> {stats.activeJob.employer?.name}</span>
@@ -292,7 +292,7 @@ function ActiveWork() {
               {/* Status colour bar at top */}
               <div className={`h-1 w-full ${job.status === 'ACCEPTED' ? 'bg-violet-500' :
                 job.status === 'WORKING' ? 'bg-emerald-500' :
-                  job.status === 'PAYMENT_PENDING' ? 'bg-[#f97316]' : 'bg-[#2a2a2a]'
+                  job.status === 'PAYMENT_PENDING' ? 'bg-[#ff2400]' : 'bg-[#2a2a2a]'
                 }`} />
 
               <div className="p-5">
@@ -363,13 +363,13 @@ function ActiveWork() {
 
                 {job.status === 'PAYMENT_PENDING' && (
                   <div className="space-y-3">
-                    <div className="flex items-center gap-3 p-3.5 bg-[#f97316]/8 border border-[#f97316]/20 rounded-xl">
-                      <div className="w-8 h-8 bg-[#f97316]/15 rounded-lg flex items-center justify-center shrink-0">
-                        <IndianRupee size={15} className="text-[#f97316]" />
+                    <div className="flex items-center gap-3 p-3.5 bg-[#ff2400]/8 border border-[#ff2400]/20 rounded-xl">
+                      <div className="w-8 h-8 bg-[#ff2400]/15 rounded-lg flex items-center justify-center shrink-0">
+                        <IndianRupee size={15} className="text-[#ff2400]" />
                       </div>
                       <div>
-                        <div className="text-sm font-semibold text-[#fb923c]">Payment Pending</div>
-                        <div className="text-xs text-[#f97316]/70 mt-0.5">
+                        <div className="text-sm font-semibold text-[#ff3a1a]">Payment Pending</div>
+                        <div className="text-xs text-[#ff2400]/70 mt-0.5">
                           {job.paymentConfirmedByEmployer
                             ? 'Employer confirmed payment — please confirm receipt below'
                             : 'Waiting for employer to confirm payment'}
@@ -474,17 +474,17 @@ function AvailabilityToggle({ hasActiveJob = false }) {
   return (
     <div className={`flex items-center justify-between p-5 rounded-2xl border transition-all
       ${hasActiveJob
-        ? 'bg-[#141414] border-[#f97316]/20'
+        ? 'bg-[#141414] border-[#ff2400]/20'
         : 'bg-[#141414] border-[#2a2a2a]'}`}>
       <div className="flex items-center gap-3 flex-1 min-w-0">
         {/* Status dot */}
         <div className={`w-2.5 h-2.5 rounded-full shrink-0 transition-colors duration-300
-          ${hasActiveJob ? 'bg-[#f97316] shadow-[0_0_8px_rgba(249,115,22,0.6)]' :
+          ${hasActiveJob ? 'bg-[#ff2400] shadow-[0_0_8px_rgba(249,115,22,0.6)]' :
             available ? 'bg-emerald-400 shadow-[0_0_8px_#34d39980]' : 'bg-[#3a3a3a]'}`} />
         <div className="min-w-0">
           <div className="text-sm font-semibold text-white">Available for Work</div>
           <div className={`text-xs mt-0.5 transition-colors truncate
-            ${hasActiveJob ? 'text-[#f97316]' :
+            ${hasActiveJob ? 'text-[#ff2400]' :
               available ? 'text-emerald-400' : 'text-[#6b6b6b]'}`}>
             {hasActiveJob
               ? 'Locked — complete your active job first'
@@ -512,8 +512,8 @@ function AvailabilityToggle({ hasActiveJob = false }) {
         </button>
         {/* Tooltip on hover when locked */}
         {isLocked && (
-          <div className="absolute right-0 bottom-8 w-52 bg-[#1e1e1e] border border-[#f97316]/20
-            text-xs text-[#f97316] px-3 py-2 rounded-xl shadow-modal
+          <div className="absolute right-0 bottom-8 w-52 bg-[#1e1e1e] border border-[#ff2400]/20
+            text-xs text-[#ff2400] px-3 py-2 rounded-xl shadow-modal
             opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10">
             You have an active job. Availability will auto-enable once the job is completed.
           </div>
@@ -616,7 +616,7 @@ function WorkerProfile() {
 
       <div className="card">
         <div className="flex items-center gap-4 mb-6">
-          <div className="w-16 h-16 bg-[#f97316]/10 border border-[#f97316]/20 rounded-2xl flex items-center justify-center text-[#f97316] text-2xl font-bold">
+          <div className="w-16 h-16 bg-[#ff2400]/10 border border-[#ff2400]/20 rounded-2xl flex items-center justify-center text-[#ff2400] text-2xl font-bold">
             {user?.name?.[0]?.toUpperCase()}
           </div>
           <div>
@@ -663,7 +663,7 @@ function WorkerProfile() {
                   <option value="">{geoLoading.states ? 'Loading...' : 'Select state'}</option>
                   {states.map(s => <option key={s} value={s}>{s}</option>)}
                 </select>
-                {geoLoading.states && <span className="absolute right-3 top-3 text-[#f97316] text-xs animate-spin">⟳</span>}
+                {geoLoading.states && <span className="absolute right-3 top-3 text-[#ff2400] text-xs animate-spin">⟳</span>}
               </div>
             </div>
 
@@ -741,10 +741,10 @@ function WorkerProfile() {
       {/* ── Honour Score History ── */}
       <div className="card">
         <h2 className="font-bold text-white mb-4 flex items-center gap-2">
-          <Star size={16} className="text-[#f97316]" /> Honour Score History
+          <Star size={16} className="text-[#ff2400]" /> Honour Score History
         </h2>
         {logsLoading ? (
-          <div className="flex justify-center py-6"><div className="w-6 h-6 border-2 border-[#f97316] border-t-transparent rounded-full animate-spin" /></div>
+          <div className="flex justify-center py-6"><div className="w-6 h-6 border-2 border-[#ff2400] border-t-transparent rounded-full animate-spin" /></div>
         ) : honourLogs.length === 0 ? (
           <div className="text-center py-6 text-[#4a4a4a] text-sm">No score changes yet</div>
         ) : (

@@ -2,7 +2,7 @@ export const getHonourLabel = (score) => {
   if (score >= 85) return { label: 'Excellent', color: '#22c55e' }
   if (score >= 70) return { label: 'Good', color: '#84cc16' }
   if (score >= 50) return { label: 'Average', color: '#f59e0b' }
-  if (score >= 30) return { label: 'Below Average', color: '#f97316' }
+  if (score >= 30) return { label: 'Below Average', color: '#ff2400' }
   return { label: 'Poor', color: '#ef4444' }
 }
 

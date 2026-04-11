@@ -15,7 +15,7 @@ const { logAdminAction } = require('../utils/adminLog');
 const approvalEmail = (name) => `
 <div style="font-family: Arial, sans-serif; max-width: 480px; margin: 0 auto;
             background: #0a0a0a; color: #f0f0f0; padding: 32px; border-radius: 16px;">
-  <h2 style="color: #f97316; margin: 0 0 4px 0;">MoKama</h2>
+  <h2 style="color: #ff2400; margin: 0 0 4px 0;">MoKama</h2>
   <p style="color: #6b6b6b; font-size: 12px; margin: 0 0 24px 0;">Where Work Meets Trust</p>
   <p style="color: #a3a3a3;">Hi <strong style="color: #f0f0f0;">${name}</strong>,</p>
   <div style="background: #16a34a15; border: 1px solid #16a34a40; border-radius: 12px; padding: 20px; margin: 20px 0; text-align: center;">
@@ -24,7 +24,7 @@ const approvalEmail = (name) => `
   </div>
   <p style="color: #a3a3a3;">Your MoKama account has been verified and approved by our team. You now have full access to all platform features.</p>
   <a href="${process.env.FRONTEND_URL || 'http://localhost:5173'}"
-     style="display: block; background: #f97316; color: white; text-align: center;
+     style="display: block; background: #ff2400; color: white; text-align: center;
             padding: 14px; border-radius: 10px; text-decoration: none;
             font-weight: bold; font-size: 15px; margin: 20px 0;">
     Login to MoKama
@@ -43,7 +43,7 @@ const rejectionEmail = (name, reason) => {
   return `
 <div style="font-family: Arial, sans-serif; max-width: 480px; margin: 0 auto;
             background: #0a0a0a; color: #f0f0f0; padding: 32px; border-radius: 16px;">
-  <h2 style="color: #f97316; margin: 0 0 4px 0;">MoKama</h2>
+  <h2 style="color: #ff2400; margin: 0 0 4px 0;">MoKama</h2>
   <p style="color: #6b6b6b; font-size: 12px; margin: 0 0 24px 0;">Where Work Meets Trust</p>
   <p style="color: #a3a3a3;">Hi <strong style="color: #f0f0f0;">${name}</strong>,</p>
   <div style="background: #dc262615; border: 1px solid #dc262640; border-radius: 12px; padding: 20px; margin: 20px 0; text-align: center;">
@@ -52,7 +52,7 @@ const rejectionEmail = (name, reason) => {
   </div>
   <p style="color: #a3a3a3;">Unfortunately, your MoKama account could not be approved at this time.</p>
   ${reasonBlock}
-  <p style="color: #6b6b6b; font-size: 13px;">For assistance, contact us at <a href="mailto:support@mokama.in" style="color: #f97316;">support@mokama.in</a></p>
+  <p style="color: #6b6b6b; font-size: 13px;">For assistance, contact us at <a href="mailto:support@mokama.in" style="color: #ff2400;">support@mokama.in</a></p>
   <hr style="border: none; border-top: 1px solid #2a2a2a; margin: 24px 0;" />
   <p style="color: #3a3a3a; font-size: 12px; text-align: center;">© 2025 MoKama — Kaam ko Mukam tak</p>
 </div>`;

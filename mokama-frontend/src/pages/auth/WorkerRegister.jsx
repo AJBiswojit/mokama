@@ -198,7 +198,7 @@ export default function WorkerRegister() {
 
           <div className="flex items-center justify-between mb-8 relative px-2">
             <div className="absolute top-4 left-4 right-4 h-px bg-[#2a2a2a]">
-              <div className="h-full bg-[#f97316] transition-all duration-500"
+              <div className="h-full bg-[#ff2400] transition-all duration-500"
                 style={{ width: `${((step - 1) / (STEPS.length - 1)) * 100}%` }} />
             </div>
             {STEPS.map(s => {
@@ -206,8 +206,8 @@ export default function WorkerRegister() {
               return (
                 <div key={s.id} className="flex flex-col items-center gap-1.5 z-10">
                   <div className={`w-8 h-8 rounded-full flex items-center justify-center border-2 transition-all
-                    ${step > s.id  ? 'bg-[#f97316] border-[#f97316] text-white' :
-                      step === s.id ? 'bg-[#0a0a0a] border-[#f97316] text-[#f97316]' :
+                    ${step > s.id  ? 'bg-[#ff2400] border-[#ff2400] text-white' :
+                      step === s.id ? 'bg-[#0a0a0a] border-[#ff2400] text-[#ff2400]' :
                                      'bg-[#0a0a0a] border-[#2a2a2a] text-[#6b6b6b]'}`}>
                     {step > s.id ? <CheckCircle size={13} /> : <Icon size={13} />}
                   </div>
@@ -224,7 +224,7 @@ export default function WorkerRegister() {
             {step === 1 && (
               <div className="space-y-4">
                 <h2 className="font-bold text-white text-lg mb-4 flex items-center gap-2">
-                  <User size={17} className="text-[#f97316]" /> Basic Details
+                  <User size={17} className="text-[#ff2400]" /> Basic Details
                 </h2>
                 <div>
                   <label className="label">Full Name *</label>
@@ -289,7 +289,7 @@ export default function WorkerRegister() {
             {step === 2 && (
               <div className="space-y-4">
                 <h2 className="font-bold text-white text-lg mb-4 flex items-center gap-2">
-                  <Wrench size={17} className="text-[#f97316]" /> Work Details
+                  <Wrench size={17} className="text-[#ff2400]" /> Work Details
                 </h2>
                 <div>
                   <label className="label">Worker Type *</label>
@@ -317,7 +317,7 @@ export default function WorkerRegister() {
             {step === 3 && (
               <div className="space-y-4">
                 <h2 className="font-bold text-white text-lg mb-4 flex items-center gap-2">
-                  <ShieldCheck size={17} className="text-[#f97316]" /> Verification
+                  <ShieldCheck size={17} className="text-[#ff2400]" /> Verification
                 </h2>
                 <div>
                   <label className="label">Mobile Number * <span className="text-[#6b6b6b] text-xs">(your unique ID)</span></label>
@@ -329,24 +329,24 @@ export default function WorkerRegister() {
                   <p className="text-xs text-[#6b6b6b] mt-1">Your mobile number is your unique login ID</p>
                 </div>
                 <div>
-                  <label className="label">Email Address * <span className="text-[#f97316] text-xs">(OTP will be sent here)</span></label>
+                  <label className="label">Email Address * <span className="text-[#ff2400] text-xs">(OTP will be sent here)</span></label>
                   <input className="input" type="email" placeholder="your@email.com"
                     value={form.email} onChange={e => set('email', e.target.value)} disabled={otpSent} />
                   <p className="text-xs text-[#6b6b6b] mt-1">You will log in using mobile number + email OTP</p>
                 </div>
                 <label className={`flex gap-3 items-start p-3 rounded-xl border cursor-pointer transition-colors
-                  ${form.consent ? 'border-[#f97316]/40 bg-[#f97316]/5' : 'border-[#2a2a2a] bg-[#1a1a1a]'}`}>
-                  <input type="checkbox" className="mt-0.5 accent-[#f97316] shrink-0"
+                  ${form.consent ? 'border-[#ff2400]/40 bg-[#ff2400]/5' : 'border-[#2a2a2a] bg-[#1a1a1a]'}`}>
+                  <input type="checkbox" className="mt-0.5 accent-[#ff2400] shrink-0"
                     checked={form.consent} onChange={e => set('consent', e.target.checked)} />
                   <span className="text-xs text-[#a3a3a3] leading-relaxed">
                     I confirm that the information provided is true and agree to abide by the{' '}
-                    <span className="text-[#f97316] underline cursor-pointer">Terms &amp; Conditions</span>
+                    <span className="text-[#ff2400] underline cursor-pointer">Terms &amp; Conditions</span>
                     {' '}of MoKama.
                   </span>
                 </label>
                 {otpSent && (
                   <>
-                    <div className="p-3 bg-[#f97316]/10 border border-[#f97316]/20 rounded-xl text-sm text-[#f97316] flex items-center gap-2">
+                    <div className="p-3 bg-[#ff2400]/10 border border-[#ff2400]/20 rounded-xl text-sm text-[#ff2400] flex items-center gap-2">
                       <Mail size={14} /> OTP sent! Check your inbox (and spam folder)
                     </div>
                     {devOtp && (
@@ -396,7 +396,7 @@ export default function WorkerRegister() {
 
           <p className="text-center text-sm text-[#6b6b6b] mt-6">
             Already registered?{' '}
-            <Link to="/worker/login" className="text-[#f97316] font-semibold hover:underline">Login here</Link>
+            <Link to="/worker/login" className="text-[#ff2400] font-semibold hover:underline">Login here</Link>
           </p>
         </div>
       </div>

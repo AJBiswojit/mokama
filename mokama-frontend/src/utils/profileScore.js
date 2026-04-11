@@ -50,7 +50,7 @@ export const getEmployerProfileScore = (employer) => {
 // Returns colour based on score
 export const getScoreColor = (score) => {
   if (score === 100) return { bg: 'bg-emerald-500',    text: 'text-emerald-400',    border: 'border-emerald-500/30' }
-  if (score >= 70)  return { bg: 'bg-[#f97316]',       text: 'text-[#f97316]',      border: 'border-[#f97316]/30'  }
+  if (score >= 70)  return { bg: 'bg-[#ff2400]',       text: 'text-[#ff2400]',      border: 'border-[#ff2400]/30'  }
   if (score >= 40)  return { bg: 'bg-amber-500',        text: 'text-amber-400',      border: 'border-amber-500/30'  }
   return                   { bg: 'bg-red-500',          text: 'text-red-400',        border: 'border-red-500/30'    }
 }

@@ -38,7 +38,7 @@ export function HonourBadge({ score, small }) {
 export function StatusBadge({ status }) {
   const cfg = {
     OPEN:            { bg: '#1e3a5f22', color: '#60a5fa', border: '#60a5fa30' },
-    REQUEST_SENT:    { bg: '#f9731620', color: '#fb923c', border: '#f9731630' },
+    REQUEST_SENT:    { bg: '#ff240020', color: '#ff3a1a', border: '#ff240030' },
     ACCEPTED:        { bg: '#6366f120', color: '#a5b4fc', border: '#6366f130' },
     WORKING:         { bg: '#22c55e20', color: '#4ade80', border: '#22c55e30' },
     PAYMENT_PENDING: { bg: '#f5a62320', color: '#fbbf24', border: '#f5a62330' },
@@ -74,7 +74,7 @@ export default function DashboardLayout({ navItems, children, role }) {
       {/* User */}
       <div className="px-4 py-4 border-b border-[#1e1e1e]">
         <div className="flex items-center gap-3">
-          <div className="w-9 h-9 bg-[#f97316]/10 border border-[#f97316]/20 rounded-xl flex items-center justify-center text-[#f97316] font-bold text-sm">
+          <div className="w-9 h-9 bg-[#ff2400]/10 border border-[#ff2400]/20 rounded-xl flex items-center justify-center text-[#ff2400] font-bold text-sm">
             {user?.name?.[0]?.toUpperCase() || '?'}
           </div>
           <div className="min-w-0">
@@ -101,7 +101,7 @@ export default function DashboardLayout({ navItems, children, role }) {
               className={`sidebar-link ${active ? 'active' : ''}`}>
               {item.icon}
               <span className="flex-1">{item.label}</span>
-              {active && <ChevronRight size={13} className="text-[#f97316]" />}
+              {active && <ChevronRight size={13} className="text-[#ff2400]" />}
             </Link>
           )
         })}
@@ -148,7 +148,7 @@ export default function DashboardLayout({ navItems, children, role }) {
           <div className="hidden md:block" />
           <div className="flex items-center gap-2">
             <Link to={`/${role}/dashboard/notifications`}
-              className="p-2 hover:bg-[#1a1a1a] rounded-xl text-[#6b6b6b] hover:text-[#f97316] transition-colors">
+              className="p-2 hover:bg-[#1a1a1a] rounded-xl text-[#6b6b6b] hover:text-[#ff2400] transition-colors">
               <Bell size={17} />
             </Link>
           </div>

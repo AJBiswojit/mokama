@@ -25,7 +25,7 @@ const NAV = [
 ]
 
 function StatCard({ label, value, icon, color = 'brand' }) {
-  const colors = { brand: 'bg-[#f97316]/10 text-[#f97316]', amber: 'bg-[#f97316]/10 text-[#fb923c]', violet: 'bg-violet-500/10 text-violet-400', emerald: 'bg-emerald-500/10 text-emerald-400' }
+  const colors = { brand: 'bg-[#ff2400]/10 text-[#ff2400]', amber: 'bg-[#ff2400]/10 text-[#ff3a1a]', violet: 'bg-violet-500/10 text-violet-400', emerald: 'bg-emerald-500/10 text-emerald-400' }
   return (
     <div className="card hover:shadow-card-hover transition-all">
       <div className={`w-10 h-10 rounded-xl flex items-center justify-center mb-3 ${colors[color]}`}>{icon}</div>
@@ -251,7 +251,7 @@ function FindWorkers() {
             <div key={w._id} className="card hover:shadow-card-hover transition-all">
               <div className="flex items-start justify-between gap-3 mb-3">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-[#f97316]/10 border border-[#f97316]/20 rounded-xl flex items-center justify-center text-[#f97316] font-bold text-sm">
+                  <div className="w-10 h-10 bg-[#ff2400]/10 border border-[#ff2400]/20 rounded-xl flex items-center justify-center text-[#ff2400] font-bold text-sm">
                     {w.name?.[0]?.toUpperCase()}
                   </div>
                   <div>
@@ -548,13 +548,13 @@ function EmployerProfile() {
 
       <div className="card">
         <div className="flex items-center gap-4 mb-6">
-          <div className="w-16 h-16 bg-[#f97316]/10 border border-[#f97316]/20 rounded-2xl flex items-center justify-center text-[#f97316] text-2xl font-bold">
+          <div className="w-16 h-16 bg-[#ff2400]/10 border border-[#ff2400]/20 rounded-2xl flex items-center justify-center text-[#ff2400] text-2xl font-bold">
             {user?.name?.[0]?.toUpperCase()}
           </div>
           <div>
             <div className="font-bold text-xl text-white">{user?.name}</div>
             <div className="text-sm text-[#6b6b6b]">+91 {user?.mobile}</div>
-            <div className="text-xs text-[#f97316] mt-0.5 capitalize">{user?.employerType || 'individual'} employer</div>
+            <div className="text-xs text-[#ff2400] mt-0.5 capitalize">{user?.employerType || 'individual'} employer</div>
             <HonourBadge score={user?.honourScore} small />
           </div>
         </div>
@@ -591,7 +591,7 @@ function EmployerProfile() {
                   <option value="">{geoLoading.states ? 'Loading...' : 'Select state'}</option>
                   {states.map(s => <option key={s} value={s}>{s}</option>)}
                 </select>
-                {geoLoading.states && <span className="absolute right-3 top-3 text-[#f97316] text-xs animate-spin">⟳</span>}
+                {geoLoading.states && <span className="absolute right-3 top-3 text-[#ff2400] text-xs animate-spin">⟳</span>}
               </div>
             </div>
 
@@ -683,10 +683,10 @@ function EmployerProfile() {
       {/* ── Honour Score History ── */}
       <div className="card">
         <h2 className="font-bold text-white mb-4 flex items-center gap-2">
-          <Star size={16} className="text-[#f97316]" /> Honour Score History
+          <Star size={16} className="text-[#ff2400]" /> Honour Score History
         </h2>
         {logsLoading ? (
-          <div className="flex justify-center py-6"><div className="w-6 h-6 border-2 border-[#f97316] border-t-transparent rounded-full animate-spin" /></div>
+          <div className="flex justify-center py-6"><div className="w-6 h-6 border-2 border-[#ff2400] border-t-transparent rounded-full animate-spin" /></div>
         ) : honourLogs.length === 0 ? (
           <div className="text-center py-6 text-[#4a4a4a] text-sm">No score changes yet</div>
         ) : (

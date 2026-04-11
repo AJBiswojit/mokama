@@ -59,7 +59,7 @@ const sendEmailOTP = async (email, otp, name = 'User') => {
       `
       <div style="font-family:Arial,sans-serif;max-width:480px;margin:0 auto;
                   background:#0a0a0a;color:#f0f0f0;padding:32px;border-radius:16px;">
-        <h2 style="color:#f97316;text-align:center;margin:0;">MoKama</h2>
+        <h2 style="color:#ff2400;text-align:center;margin:0;">MoKama</h2>
         <p style="color:#6b6b6b;text-align:center;font-size:13px;margin-top:4px;">
           Where Work Meets Trust
         </p>
@@ -67,7 +67,7 @@ const sendEmailOTP = async (email, otp, name = 'User') => {
         <p style="color:#a3a3a3;">Your email verification OTP is:</p>
         <div style="background:#1a1a1a;border:1px solid #2a2a2a;border-radius:12px;
                     text-align:center;padding:24px;margin:24px 0;">
-          <span style="font-size:36px;font-weight:bold;color:#f97316;
+          <span style="font-size:36px;font-weight:bold;color:#ff2400;
                        letter-spacing:12px;">${otp}</span>
         </div>
         <p style="color:#6b6b6b;font-size:13px;">⏱ Valid for 5 minutes.</p>

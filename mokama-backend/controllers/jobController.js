@@ -36,11 +36,11 @@ async function triggerJobMatching(job) {
   for (const w of workers) {
     sendEmail(w.email, `New Job Available Near You — ${job.workerTypeName} | MoKama`,
       `<div style="font-family:Arial;max-width:480px;margin:0 auto;background:#0a0a0a;color:#f0f0f0;padding:32px;border-radius:16px;">
-        <h2 style="color:#f97316;">MoKama</h2>
-        <p>Hi ${w.name}, a <strong style="color:#f97316;">${job.workerTypeName}</strong> job is available near you!</p>
+        <h2 style="color:#ff2400;">MoKama</h2>
+        <p>Hi ${w.name}, a <strong style="color:#ff2400;">${job.workerTypeName}</strong> job is available near you!</p>
         <p><strong>₹${job.wage}/day</strong> · ${job.address}, ${job.pincode}</p>
         <a href="${process.env.FRONTEND_URL}/worker/dashboard"
-           style="display:block;background:#f97316;color:white;text-align:center;padding:14px;border-radius:10px;text-decoration:none;font-weight:bold;margin-top:16px;">
+           style="display:block;background:#ff2400;color:white;text-align:center;padding:14px;border-radius:10px;text-decoration:none;font-weight:bold;margin-top:16px;">
           View Jobs
         </a>
       </div>`
@@ -114,16 +114,16 @@ exports.sendJobRequest = async (req, res) => {
     const employer = await Employer.findById(req.user._id).select('name');
     sendEmail(worker.email, `New Job Request — ${job.title} | MoKama`,
       `<div style="font-family:Arial;max-width:480px;margin:0 auto;background:#0a0a0a;color:#f0f0f0;padding:32px;border-radius:16px;">
-        <h2 style="color:#f97316;">New Job Request</h2>
+        <h2 style="color:#ff2400;">New Job Request</h2>
         <p>Hi ${worker.name}, you have a new job request from <strong>${employer?.name}</strong>!</p>
         <div style="background:#1a1a1a;border:1px solid #2a2a2a;border-radius:12px;padding:20px;margin:16px 0;">
           <p><strong>Job:</strong> ${job.title}</p>
-          <p style="color:#f97316;"><strong>Wage:</strong> ₹${job.wage}/day</p>
+          <p style="color:#ff2400;"><strong>Wage:</strong> ₹${job.wage}/day</p>
           <p><strong>Location:</strong> ${job.address}</p>
         </div>
-        <p style="color:#f97316;font-weight:bold;">⏱ Respond within ${expiryMins} minutes to avoid a penalty</p>
+        <p style="color:#ff2400;font-weight:bold;">⏱ Respond within ${expiryMins} minutes to avoid a penalty</p>
         <a href="${process.env.FRONTEND_URL}/worker/dashboard/requests"
-           style="display:block;background:#f97316;color:white;text-align:center;padding:14px;border-radius:10px;text-decoration:none;font-weight:bold;">
+           style="display:block;background:#ff2400;color:white;text-align:center;padding:14px;border-radius:10px;text-decoration:none;font-weight:bold;">
           View & Respond Now
         </a>
       </div>`

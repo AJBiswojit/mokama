@@ -23,7 +23,7 @@ const NAV = [
 
 /* ─── Helpers ─── */
 function Spinner() {
-  return <div className="flex justify-center py-16"><div className="w-8 h-8 border-2 border-[#f97316] border-t-transparent rounded-full animate-spin" /></div>
+  return <div className="flex justify-center py-16"><div className="w-8 h-8 border-2 border-[#ff2400] border-t-transparent rounded-full animate-spin" /></div>
 }
 function EmptyState({ icon, text }) {
   return <div className="card text-center py-14"><div className="text-[#2a2a2a] flex justify-center mb-3">{icon}</div><div className="text-[#4a4a4a] text-sm">{text}</div></div>
@@ -116,7 +116,7 @@ function HonourControls({ userId, userType, currentScore, acting, onPenalize, on
       <span className="text-xs text-[#4a4a4a] font-mono w-8 text-center">{currentScore}</span>
       <button onClick={() => onPenalize(userId, userType)}
         disabled={!!acting || currentScore <= 0}
-        className="btn-ghost text-xs p-2 text-[#fb923c] hover:bg-[#f97316]/10 disabled:opacity-30"
+        className="btn-ghost text-xs p-2 text-[#ff3a1a] hover:bg-[#ff2400]/10 disabled:opacity-30"
         title="Penalise honour -5">
         {acting === userId + 'p' ? <Loader size={13} className="animate-spin" /> : <TrendingDown size={13} />}
       </button>
@@ -194,9 +194,9 @@ function Overview() {
 
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
         {[
-          { label: 'Total Workers',   value: stats?.workers,       color: 'bg-[#f97316]/10 text-[#f97316]',    icon: <Users size={20} /> },
+          { label: 'Total Workers',   value: stats?.workers,       color: 'bg-[#ff2400]/10 text-[#ff2400]',    icon: <Users size={20} /> },
           { label: 'Total Employers', value: stats?.employers,     color: 'bg-violet-500/10 text-violet-400',   icon: <Briefcase size={20} /> },
-          { label: 'Total Jobs',      value: stats?.jobs,          color: 'bg-[#f97316]/10 text-[#fb923c]',    icon: <AlertCircle size={20} /> },
+          { label: 'Total Jobs',      value: stats?.jobs,          color: 'bg-[#ff2400]/10 text-[#ff3a1a]',    icon: <AlertCircle size={20} /> },
           { label: 'Completed Jobs',  value: stats?.completedJobs, color: 'bg-emerald-500/10 text-emerald-400', icon: <CheckCircle size={20} /> },
           { label: 'Active Jobs',     value: stats?.activeJobs,    color: 'bg-sky-500/10 text-sky-400',         icon: <RefreshCw size={20} /> },
         ].map(c => (
@@ -272,7 +272,7 @@ function ApprovalsPanel() {
         {['workers', 'employers'].map(t => (
           <button key={t} onClick={() => setTab(t)}
             className={`px-4 py-1.5 rounded-lg text-sm font-medium transition-all capitalize
-              ${tab === t ? 'bg-[#f97316] text-white' : 'text-[#6b6b6b] hover:text-white'}`}>
+              ${tab === t ? 'bg-[#ff2400] text-white' : 'text-[#6b6b6b] hover:text-white'}`}>
             {t === 'workers' ? 'Workers' : 'Employers'}
             {(t === 'workers' ? workers : employers).length > 0 && (
               <span className="ml-1.5 px-1.5 py-0.5 bg-white/20 rounded-full text-xs">
@@ -291,7 +291,7 @@ function ApprovalsPanel() {
                 <div className="flex items-start justify-between gap-4">
                   <div className="flex items-start gap-3 flex-1 min-w-0">
                     <div className={`w-11 h-11 rounded-xl flex items-center justify-center font-bold text-sm shrink-0
-                      ${tab === 'workers' ? 'bg-[#f97316]/10 border border-[#f97316]/20 text-[#f97316]' : 'bg-violet-500/10 border border-violet-500/20 text-violet-400'}`}>
+                      ${tab === 'workers' ? 'bg-[#ff2400]/10 border border-[#ff2400]/20 text-[#ff2400]' : 'bg-violet-500/10 border border-violet-500/20 text-violet-400'}`}>
                       {u.name?.[0]?.toUpperCase()}
                     </div>
                     <div className="min-w-0 flex-1">
@@ -449,7 +449,7 @@ function UserPanel({ userType }) {
               <div key={u._id} className={`card border ${borderClass(u)}`}>
                 <div className="flex items-center gap-3">
                   <div className={`w-10 h-10 rounded-xl flex items-center justify-center font-bold text-sm shrink-0
-                    ${isWorker ? 'bg-[#f97316]/10 border border-[#f97316]/20 text-[#f97316]' : 'bg-violet-500/10 border border-violet-500/20 text-violet-400'}`}>
+                    ${isWorker ? 'bg-[#ff2400]/10 border border-[#ff2400]/20 text-[#ff2400]' : 'bg-violet-500/10 border border-violet-500/20 text-violet-400'}`}>
                     {u.name?.[0]?.toUpperCase()}
                   </div>
                   <div className="flex-1 min-w-0">
@@ -504,7 +504,7 @@ function UserPanel({ userType }) {
                       onPenalize={penalize} onIncrease={increase} />
                     {/* Enable/Disable */}
                     <button onClick={() => toggle(u._id)} disabled={acting === u._id + 'toggle'}
-                      className={`btn-ghost text-xs p-2 ${u.isActive ? 'text-red-500 hover:bg-red-500/10' : 'text-[#f97316] hover:bg-[#f97316]/10'}`}>
+                      className={`btn-ghost text-xs p-2 ${u.isActive ? 'text-red-500 hover:bg-red-500/10' : 'text-[#ff2400] hover:bg-[#ff2400]/10'}`}>
                       {acting === u._id + 'toggle' ? <Loader size={13} className="animate-spin" /> : u.isActive ? <XCircle size={13} /> : <CheckCircle size={13} />}
                     </button>
                     {/* Delete */}
@@ -818,7 +818,7 @@ function ActivityLogPanel() {
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="text-sm text-white">
-                        <span className="text-[#f97316]">{log.adminName || 'Admin'}</span>
+                        <span className="text-[#ff2400]">{log.adminName || 'Admin'}</span>
                         {' → '}
                         <span className="text-[#a3a3a3]">{log.targetName || 'Unknown'}</span>
                         {log.targetType && <span className="text-[#4a4a4a] text-xs"> ({log.targetType})</span>}

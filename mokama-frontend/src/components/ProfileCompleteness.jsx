@@ -82,8 +82,8 @@ export default function ProfileCompleteness({ user, role }) {
           </div>
           <Link
             to={profilePath}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#f97316] text-white
-              text-xs font-semibold rounded-xl hover:bg-[#fb923c] transition-colors">
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#ff2400] text-white
+              text-xs font-semibold rounded-xl hover:bg-[#ff3a1a] transition-colors">
             Complete Profile →
           </Link>
         </div>

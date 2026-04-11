@@ -31,7 +31,7 @@ export default function Pagination({ page, totalPages, total, limit, onPage }) {
             <button key={p} onClick={() => onPage(p)}
               className={`w-7 h-7 rounded-lg text-xs font-medium transition-all
                 ${p === page
-                  ? 'bg-[#f97316] text-white'
+                  ? 'bg-[#ff2400] text-white'
                   : 'btn-ghost text-[#6b6b6b] hover:text-white'}`}>
               {p}
             </button>

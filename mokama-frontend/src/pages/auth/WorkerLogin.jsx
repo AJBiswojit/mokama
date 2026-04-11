@@ -100,7 +100,7 @@ export default function WorkerLogin() {
                 <p className="text-sm text-[#6b6b6b]">
                   OTP sent to <span className="text-white font-medium">{maskedEmail}</span>
                 </p>
-                <div className="p-3 bg-[#f97316]/10 border border-[#f97316]/20 rounded-xl text-sm text-[#f97316] flex items-center gap-2">
+                <div className="p-3 bg-[#ff2400]/10 border border-[#ff2400]/20 rounded-xl text-sm text-white flex justify-center items-center gap-2">
                   <Mail size={14} /> Check your email inbox (and spam folder)
                 </div>
                 {devOtp && (
@@ -130,7 +130,7 @@ export default function WorkerLogin() {
 
           <p className="text-center text-sm text-[#6b6b6b] mt-6">
             New here?{' '}
-            <Link to="/worker/register" className="text-[#f97316] font-semibold hover:underline">Register as Worker</Link>
+            <Link to="/worker/register" className="text-[#ff2400] font-semibold hover:underline">Register as Worker</Link>
           </p>
         </div>
       </div>
