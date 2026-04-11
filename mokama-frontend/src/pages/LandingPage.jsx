@@ -190,9 +190,12 @@ export default function LandingPage() {
 
         <div className="relative max-w-6xl mx-auto">
           {/* Badge */}
-          <div className="flex justify-center mb-5">
-            <div className="inline-flex items-center gap-2 px-4 py-2 bg-[#ff2400]/10 border border-[#ff2400]/30 text-[#ff2400] rounded-full text-xs font-bold tracking-wide">
-              <MapPin size={11} /> India's First Daily Wage Platform for Rural & Semi-Urban Workers
+          <div className="flex justify-center mb-5 px-2">
+            <div className="inline-flex flex-wrap justify-center items-center gap-1 sm:gap-2 px-3 sm:px-4 py-1.5 sm:py-2 bg-[#ff2400]/10 border border-[#ff2400]/30 text-[#ff2400] rounded-full text-[10px] sm:text-xs font-bold tracking-wide text-center">
+              <MapPin size={10} className="sm:w-[11px] sm:h-[11px]" />
+              <span>
+                India's First Daily Wage Platform for Rural & Semi-Urban Workers
+              </span>
             </div>
           </div>
           <div>
@@ -353,16 +356,16 @@ export default function LandingPage() {
               <button
                 onClick={() => setActiveTab('worker')}
                 className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold transition-all ${activeTab === 'worker'
-                    ? 'bg-[#ff2400] text-white shadow-lg shadow-[#ff2400]/20'
-                    : 'text-[#6b6b6b] hover:text-white'
+                  ? 'bg-[#ff2400] text-white shadow-lg shadow-[#ff2400]/20'
+                  : 'text-[#6b6b6b] hover:text-white'
                   }`}>
                 <HardHat size={15} /> I am a Worker
               </button>
               <button
                 onClick={() => setActiveTab('employer')}
                 className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold transition-all ${activeTab === 'employer'
-                    ? 'bg-[#ff2400] text-white shadow-lg shadow-[#ff2400]/20'
-                    : 'text-[#6b6b6b] hover:text-white'
+                  ? 'bg-[#ff2400] text-white shadow-lg shadow-[#ff2400]/20'
+                  : 'text-[#6b6b6b] hover:text-white'
                   }`}>
                 <Building2 size={15} /> I Need Workers
               </button>
