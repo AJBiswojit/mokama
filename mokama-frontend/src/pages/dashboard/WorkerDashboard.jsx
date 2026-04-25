@@ -450,11 +450,16 @@ function AvailabilityToggle({ hasActiveJob = false }) {
     setAvailable(user?.availabilityStatus ?? false)
   }, [user?.availabilityStatus])
 
-  // Blocked if trying to turn ON while job is active
-  const isLocked = hasActiveJob && !available
+  const isPending  = user?.status !== 'approved'
+  // Blocked if trying to turn ON while job is active OR account is pending
+  const isLocked = (hasActiveJob && !available) || isPending
 
   const toggle = async () => {
-    if (isLocked) {
+    if (isPending) {
+      toast.error('Your account is pending admin approval')
+      return
+    }
+    if (hasActiveJob && !available) {
       toast.error('Complete your current job before marking as available')
       return
     }
@@ -473,24 +478,30 @@ function AvailabilityToggle({ hasActiveJob = false }) {
 
   return (
     <div className={`flex items-center justify-between p-5 rounded-2xl border transition-all
-      ${hasActiveJob
-        ? 'bg-[#141414] border-[#ff2400]/20'
-        : 'bg-[#141414] border-[#2a2a2a]'}`}>
+      ${isPending
+        ? 'bg-[#141414] border-amber-500/20'
+        : hasActiveJob
+          ? 'bg-[#141414] border-[#ff2400]/20'
+          : 'bg-[#141414] border-[#2a2a2a]'}`}>
       <div className="flex items-center gap-3 flex-1 min-w-0">
         {/* Status dot */}
         <div className={`w-2.5 h-2.5 rounded-full shrink-0 transition-colors duration-300
-          ${hasActiveJob ? 'bg-[#ff2400] shadow-[0_0_8px_rgba(249,115,22,0.6)]' :
-            available ? 'bg-emerald-400 shadow-[0_0_8px_#34d39980]' : 'bg-[#3a3a3a]'}`} />
+          ${isPending ? 'bg-amber-500' :
+            hasActiveJob ? 'bg-[#ff2400] shadow-[0_0_8px_rgba(249,115,22,0.6)]' :
+              available ? 'bg-emerald-400 shadow-[0_0_8px_#34d39980]' : 'bg-[#3a3a3a]'}`} />
         <div className="min-w-0">
           <div className="text-sm font-semibold text-white">Available for Work</div>
           <div className={`text-xs mt-0.5 transition-colors truncate
-            ${hasActiveJob ? 'text-[#ff2400]' :
-              available ? 'text-emerald-400' : 'text-[#6b6b6b]'}`}>
-            {hasActiveJob
-              ? 'Locked — complete your active job first'
-              : available
-                ? 'You are visible to employers'
-                : 'You are currently unavailable'}
+            ${isPending ? 'text-amber-400' :
+              hasActiveJob ? 'text-[#ff2400]' :
+                available ? 'text-emerald-400' : 'text-[#6b6b6b]'}`}>
+            {isPending
+              ? 'Account pending approval — toggle disabled'
+              : hasActiveJob
+                ? 'Locked — complete your active job first'
+                : available
+                  ? 'You are visible to employers'
+                  : 'You are currently unavailable'}
           </div>
         </div>
       </div>
@@ -500,22 +511,27 @@ function AvailabilityToggle({ hasActiveJob = false }) {
         <button
           onClick={toggle}
           disabled={toggling || isLocked}
-          title={isLocked ? 'Finish your active job to re-enable availability' : ''}
+          title={
+            isPending ? 'Account not yet approved by admin' :
+            isLocked ? 'Finish your active job to re-enable availability' : ''
+          }
           className={`relative inline-flex h-6 w-11 items-center rounded-full
             transition-colors duration-300 focus:outline-none
             ${isLocked ? 'opacity-40 cursor-not-allowed' : 'cursor-pointer'}
-            ${available ? 'bg-emerald-500' : 'bg-[#2a2a2a]'}`}
+            ${available && !isPending ? 'bg-emerald-500' : 'bg-[#2a2a2a]'}`}
         >
           <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow-md
             transition-transform duration-300
-            ${available ? 'translate-x-6' : 'translate-x-1'}`} />
+            ${available && !isPending ? 'translate-x-6' : 'translate-x-1'}`} />
         </button>
         {/* Tooltip on hover when locked */}
         {isLocked && (
-          <div className="absolute right-0 bottom-8 w-52 bg-[#1e1e1e] border border-[#ff2400]/20
-            text-xs text-[#ff2400] px-3 py-2 rounded-xl shadow-modal
+          <div className="absolute right-0 bottom-8 w-52 bg-[#1e1e1e] border border-[#2a2a2a]
+            text-xs text-[#a3a3a3] px-3 py-2 rounded-xl shadow-modal
             opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10">
-            You have an active job. Availability will auto-enable once the job is completed.
+            {isPending
+              ? 'Your account must be approved by admin before you can set availability.'
+              : 'You have an active job. Availability will auto-enable once the job is completed.'}
           </div>
         )}
       </div>

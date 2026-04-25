@@ -81,8 +81,21 @@ function Overview() {
           <h1 className="text-2xl font-extrabold text-white">Hello, {user?.name?.split(' ')[0]} 👋</h1>
           <p className="text-[#6b6b6b] text-sm mt-1">Manage your jobs and workforce</p>
         </div>
-        <button className="btn-primary shrink-0" onClick={() => navigate('/employer/dashboard/create-job')}>
+        <button
+          className="btn-primary shrink-0 disabled:opacity-50 disabled:cursor-not-allowed"
+          onClick={() => {
+            if (user?.status !== 'approved') {
+              toast.error('Your account is pending admin approval. You cannot post jobs yet.')
+              return
+            }
+            navigate('/employer/dashboard/create-job')
+          }}
+          title={user?.status !== 'approved' ? 'Account not yet approved by admin' : ''}
+        >
           <PlusCircle size={16} /> Post a Job
+          {user?.status !== 'approved' && (
+            <span className="ml-1 text-xs opacity-70">(Pending)</span>
+          )}
         </button>
       </div>
 
@@ -113,6 +126,7 @@ function Overview() {
 /* ─── Create Job ─── */
 function CreateJob() {
   const navigate = useNavigate()
+  const { user } = useAuth()
   const [workerTypes, setWorkerTypes] = useState([])
   const [loading, setLoading] = useState(false)
   const [form, setForm] = useState({ title: '', workerType: '', workerTypeName: '', address: '', pincode: '', wage: '', startDate: '', description: '' })
@@ -121,6 +135,26 @@ function CreateJob() {
   useEffect(() => {
     api.get('/auth/categories').then(r => setWorkerTypes(r.data.workerTypes || []))
   }, [])
+
+  // Block pending/rejected employers entirely
+  if (user?.status !== 'approved') {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[60vh] animate-fade-in">
+        <div className="card max-w-md w-full text-center p-10 border border-amber-500/20 bg-amber-500/5">
+          <div className="w-16 h-16 bg-amber-500/10 border border-amber-500/20 rounded-2xl flex items-center justify-center mx-auto mb-5">
+            <span className="text-3xl">⏳</span>
+          </div>
+          <h2 className="text-xl font-extrabold text-white mb-2">Approval Pending</h2>
+          <p className="text-[#a3a3a3] text-sm leading-relaxed mb-6">
+            Your account is currently under review by the MoKama team. You will be able to post jobs once approved.
+          </p>
+          <button className="btn-ghost w-full justify-center" onClick={() => navigate('/employer/dashboard')}>
+            ← Back to Dashboard
+          </button>
+        </div>
+      </div>
+    )
+  }
 
   const submit = async () => {
     if (!form.title || !form.address || !form.pincode || !form.wage || !form.startDate) {

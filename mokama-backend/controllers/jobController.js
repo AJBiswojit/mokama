@@ -13,10 +13,16 @@ const getIo = (req) => req.app.get('io');
 // ─────────────── Job Matching ───────────────
 async function triggerJobMatching(job) {
   if (!job.workerType && !job.workerTypeName) return;
+
+  // Get employer's email to exclude workers sharing the same email
+  const employer = await Employer.findById(job.employer).select('name email');
+
   const matchQuery = {
     availabilityStatus: true, status: 'approved',
     isActive: true, isDeleted: { $ne: true },
     email: { $exists: true, $ne: '' },
+    // Exclude workers whose email matches the employer's email
+    ...(employer?.email ? { email: { $exists: true, $ne: '', $nin: [employer.email] } } : {}),
   };
   if (job.workerType)          matchQuery.workerType     = job.workerType;
   else if (job.workerTypeName) matchQuery.workerTypeName = job.workerTypeName;
@@ -32,7 +38,7 @@ async function triggerJobMatching(job) {
     workers = [...workers, ...extra];
   }
   if (!workers.length) return;
-  const employer = await Employer.findById(job.employer).select('name');
+
   for (const w of workers) {
     sendEmail(w.email, `New Job Available Near You — ${job.workerTypeName} | MoKama`,
       `<div style="font-family:Arial;max-width:480px;margin:0 auto;background:#0a0a0a;color:#f0f0f0;padding:32px;border-radius:16px;">
@@ -46,7 +52,6 @@ async function triggerJobMatching(job) {
       </div>`
     );
   }
-  console.log(`📬 Job match: notified ${workers.length} workers for "${job.title}"`);
 }
 
 // ─────────────── Create Job ───────────────

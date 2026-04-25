@@ -8,6 +8,7 @@ import WorkerRegister from './pages/auth/WorkerRegister'
 import EmployerTypeSelect from './pages/auth/EmployerTypeSelect'
 import IndividualEmployerRegister from './pages/auth/IndividualEmployerRegister'
 import OrganisationEmployerRegister from './pages/auth/OrganisationEmployerRegister'
+import PendingVerification from './pages/auth/PendingVerification'
 import WorkerLogin from './pages/auth/WorkerLogin'
 import EmployerLogin from './pages/auth/EmployerLogin'
 import AdminLogin from './pages/auth/AdminLogin'
@@ -40,6 +41,8 @@ export default function App() {
           <Route path="/employer/register" element={<EmployerTypeSelect />} />
           <Route path="/employer/register/individual" element={<IndividualEmployerRegister />} />
           <Route path="/employer/register/organisation" element={<OrganisationEmployerRegister />} />
+          <Route path="/worker/pending" element={<PendingVerification role="worker" />} />
+          <Route path="/employer/pending" element={<PendingVerification role="employer" />} />
           <Route path="/worker/login" element={<WorkerLogin />} />
           <Route path="/employer/login" element={<EmployerLogin />} />
           <Route path="/admin/login" element={<AdminLogin />} />

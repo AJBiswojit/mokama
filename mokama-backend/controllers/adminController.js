@@ -6,6 +6,7 @@ const { JOB_STATUS } = require('../models/Job');
 const { updateHonourScore } = require('../utils/honour');
 const HonourLog  = require('../models/HonourLog');
 const { logAdminAction } = require('../utils/adminLog');
+const { sendEmail } = require('../utils/emailOtp');
 
 const SAFE_SELECT = '-emailOtp -emailOtpExpiry';
 
@@ -301,11 +302,186 @@ exports.getAdminLog = async (req, res) => {
   }
 };
 
+// ── Approve worker or employer account ──────────────────────────────────────
+exports.approveUser = async (req, res) => {
+  try {
+    const { userId, userType } = req.params;
+
+    if (!['worker', 'employer'].includes(userType))
+      return res.status(400).json({ success: false, message: 'Invalid user type' });
+
+    const Model = userType === 'worker' ? Worker : Employer;
+
+    const user = await Model.findByIdAndUpdate(
+      userId,
+      { status: 'approved', isVerified: true, isActive: true },
+      { new: true }
+    ).select(SAFE_SELECT);
+
+    if (!user)
+      return res.status(404).json({ success: false, message: 'User not found' });
+
+    // ── Approval email ───────────────────────────────────────────────────────
+    const role    = userType === 'worker' ? 'Worker' : 'Employer';
+    const appLink = process.env.FRONTEND_URL || 'https://mokama.vercel.app';
+
+    const html = `
+      <!DOCTYPE html>
+      <html lang="en">
+      <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+        <title>Account Approved — MoKama</title>
+      </head>
+      <body style="margin:0;padding:0;background:#f4f4f4;font-family:'Segoe UI',Arial,sans-serif;">
+        <table width="100%" cellpadding="0" cellspacing="0" style="background:#f4f4f4;padding:32px 0;">
+          <tr>
+            <td align="center">
+              <table width="560" cellpadding="0" cellspacing="0"
+                     style="background:#ffffff;border-radius:12px;overflow:hidden;
+                            box-shadow:0 4px 24px rgba(0,0,0,0.08);">
+
+                <!-- Header -->
+                <tr>
+                  <td style="background:#ff2400;padding:28px 32px;text-align:center;">
+                    <h1 style="margin:0;color:#ffffff;font-size:22px;font-weight:700;
+                               letter-spacing:-0.3px;">
+                      MoKama
+                    </h1>
+                    <p style="margin:4px 0 0;color:rgba(255,255,255,0.85);font-size:13px;">
+                      Connecting Workers &amp; Employers
+                    </p>
+                  </td>
+                </tr>
+
+                <!-- Body -->
+                <tr>
+                  <td style="padding:36px 32px 28px;">
+
+                    <!-- Tick icon -->
+                    <div style="text-align:center;margin-bottom:24px;">
+                      <div style="display:inline-block;width:64px;height:64px;
+                                  background:#f0fdf4;border-radius:50%;
+                                  line-height:64px;font-size:32px;">
+                        ✅
+                      </div>
+                    </div>
+
+                    <h2 style="margin:0 0 8px;color:#111111;font-size:20px;
+                               font-weight:700;text-align:center;">
+                      Account Approved!
+                    </h2>
+                    <p style="margin:0 0 24px;color:#555555;font-size:15px;
+                               text-align:center;line-height:1.6;">
+                      Hi <strong>${user.name}</strong>, your <strong>${role}</strong>
+                      account on MoKama has been reviewed and approved by our team.
+                      You can now log in and start using the platform.
+                    </p>
+
+                    <!-- What's unlocked -->
+                    <table width="100%" cellpadding="0" cellspacing="0"
+                           style="background:#fff8f6;border:1px solid #ffe0da;
+                                  border-radius:10px;margin-bottom:28px;">
+                      <tr>
+                        <td style="padding:20px 24px;">
+                          <p style="margin:0 0 12px;font-size:13px;font-weight:700;
+                                     color:#ff2400;text-transform:uppercase;
+                                     letter-spacing:0.05em;">
+                            What's now available to you
+                          </p>
+                          ${userType === 'worker' ? `
+                          <p style="margin:6px 0;color:#333;font-size:14px;">
+                            ✔ &nbsp; Browse and receive job requests
+                          </p>
+                          <p style="margin:6px 0;color:#333;font-size:14px;">
+                            ✔ &nbsp; Set your availability status
+                          </p>
+                          <p style="margin:6px 0;color:#333;font-size:14px;">
+                            ✔ &nbsp; Build your Honour Score
+                          </p>
+                          <p style="margin:6px 0;color:#333;font-size:14px;">
+                            ✔ &nbsp; Get paid and tracked through the platform
+                          </p>
+                          ` : `
+                          <p style="margin:6px 0;color:#333;font-size:14px;">
+                            ✔ &nbsp; Post job requirements and hire workers
+                          </p>
+                          <p style="margin:6px 0;color:#333;font-size:14px;">
+                            ✔ &nbsp; Browse verified workers near you
+                          </p>
+                          <p style="margin:6px 0;color:#333;font-size:14px;">
+                            ✔ &nbsp; Manage active and completed jobs
+                          </p>
+                          <p style="margin:6px 0;color:#333;font-size:14px;">
+                            ✔ &nbsp; Build your employer reputation
+                          </p>
+                          `}
+                        </td>
+                      </tr>
+                    </table>
+
+                    <!-- CTA button -->
+                    <div style="text-align:center;margin-bottom:12px;">
+                      <a href="${appLink}"
+                         style="display:inline-block;background:#ff2400;color:#ffffff;
+                                text-decoration:none;font-size:15px;font-weight:600;
+                                padding:13px 36px;border-radius:8px;
+                                letter-spacing:0.02em;">
+                        Go to MoKama →
+                      </a>
+                    </div>
+
+                    <p style="margin:20px 0 0;color:#888888;font-size:13px;
+                               text-align:center;line-height:1.6;">
+                      If you have any questions, reply to this email or contact
+                      our support team.
+                    </p>
+                  </td>
+                </tr>
+
+                <!-- Footer -->
+                <tr>
+                  <td style="background:#f9f9f9;border-top:1px solid #eeeeee;
+                             padding:16px 32px;text-align:center;">
+                    <p style="margin:0;color:#aaaaaa;font-size:12px;">
+                      © ${new Date().getFullYear()} MoKama. All rights reserved.
+                    </p>
+                  </td>
+                </tr>
+
+              </table>
+            </td>
+          </tr>
+        </table>
+      </body>
+      </html>
+    `;
+
+    // Fire-and-forget — don't block approval if email fails
+    sendEmail(user.email, '✅ Your MoKama Account is Approved!', html)
+      .catch(err => console.error('Approval email failed:', err.message));
+
+    invalidateStatsCache();
+
+    logAdminAction(req.user, 'APPROVED_USER', {
+      id: user._id, type: userType, name: user.name,
+    });
+
+    res.json({
+      success: true,
+      message: `${role} account approved. Approval email sent to ${user.email}.`,
+      user,
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+
 // Seed admin account
 exports.seedAdmin = async () => {
   try {
-    const email    = process.env.ADMIN_EMAIL    || 'admin@mokama.in';
-    const password = process.env.ADMIN_PASSWORD || 'admin123';
+    const email    = process.env.ADMIN_EMAIL;
+    const password = process.env.ADMIN_PASSWORD;
 
     const existing = await Admin.findOne({ email });
 

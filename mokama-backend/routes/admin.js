@@ -3,7 +3,7 @@ const router  = express.Router();
 const {
   getDashboardStats, getAllWorkers, getAllEmployers,
   getAllJobs, forceCloseJob, penalizeUser, increaseHonourScore,
-  toggleUserStatus, deleteUser, restoreUser, getDeletedUsers, getHonourLog, getAdminLog,
+  toggleUserStatus, deleteUser, restoreUser, getDeletedUsers, getHonourLog, getAdminLog, approveUser,
 } = require('../controllers/adminController');
 const { protect, requireRole } = require('../middlewares/auth');
 const Worker   = require('../models/Worker');
@@ -125,31 +125,8 @@ router.patch('/workers/:workerId/availability', async (req, res) => {
 });
 
 // ── IMPORTANT: Specific action routes MUST come before generic :param routes ──
-// Approve — Fix 4: sends approval email
-router.patch('/users/:userType/:userId/approve', async (req, res) => {
-  try {
-    const Model = req.params.userType === 'worker' ? Worker : Employer;
-    const user = await Model.findByIdAndUpdate(
-      req.params.userId, { status: 'approved' }, { new: true }
-    ).select('-emailOtp -emailOtpExpiry');
-    if (!user) return res.status(404).json({ success: false, message: 'User not found' });
-
-    // Send approval email (non-blocking)
-    if (user.email) {
-      sendEmail(
-        user.email,
-        'Your MoKama Account is Approved! 🎉',
-        approvalEmail(user.name)
-      );
-    }
-
-    logAdminAction(req.user, 'APPROVED_USER', {
-      id: user._id, type: req.params.userType, name: user.name,
-      details: `Approved ${req.params.userType} account`
-    });
-    res.json({ success: true, message: `${req.params.userType} approved`, status: user.status });
-  } catch (err) { res.status(500).json({ success: false, message: err.message }); }
-});
+// Approve — uses adminController.approveUser (sends branded email)
+router.patch('/users/:userType/:userId/approve', approveUser);
 
 // Reject — Fix 4: sends rejection email
 router.patch('/users/:userType/:userId/reject', async (req, res) => {
