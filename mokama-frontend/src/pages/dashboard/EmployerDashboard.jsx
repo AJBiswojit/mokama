@@ -7,12 +7,13 @@ import toast from 'react-hot-toast'
 import {
   LayoutDashboard, PlusCircle, Users, Briefcase, Clock,
   User, Bell, CheckCircle, MapPin, IndianRupee, Calendar,
-  Search, Star, RefreshCw, Loader, ChevronRight, AlertCircle
+  Search, Star, RefreshCw, Loader, ChevronRight, AlertCircle, Lock
 } from 'lucide-react'
 import { formatDate, timeAgo } from '../../utils/honour'
 import StatusBanner from '../../components/StatusBanner'
 import ProfileCompleteness from '../../components/ProfileCompleteness'
 import useSocket from '../../socket/useSocket'
+import CreateJob from './CreateJob'
 
 const NAV = [
   { href: '/employer/dashboard', label: 'Dashboard', icon: <LayoutDashboard size={16} /> },
@@ -123,100 +124,6 @@ function Overview() {
   )
 }
 
-/* ─── Create Job ─── */
-function CreateJob() {
-  const navigate = useNavigate()
-  const { user } = useAuth()
-  const [workerTypes, setWorkerTypes] = useState([])
-  const [loading, setLoading] = useState(false)
-  const [form, setForm] = useState({ title: '', workerType: '', workerTypeName: '', address: '', pincode: '', wage: '', startDate: '', description: '' })
-  const set = (k, v) => setForm(p => ({ ...p, [k]: v }))
-
-  useEffect(() => {
-    api.get('/auth/categories').then(r => setWorkerTypes(r.data.workerTypes || []))
-  }, [])
-
-  // Block pending/rejected employers entirely
-  if (user?.status !== 'approved') {
-    return (
-      <div className="flex flex-col items-center justify-center min-h-[60vh] animate-fade-in">
-        <div className="card max-w-md w-full text-center p-10 border border-amber-500/20 bg-amber-500/5">
-          <div className="w-16 h-16 bg-amber-500/10 border border-amber-500/20 rounded-2xl flex items-center justify-center mx-auto mb-5">
-            <span className="text-3xl">⏳</span>
-          </div>
-          <h2 className="text-xl font-extrabold text-white mb-2">Approval Pending</h2>
-          <p className="text-[#a3a3a3] text-sm leading-relaxed mb-6">
-            Your account is currently under review by the MoKama team. You will be able to post jobs once approved.
-          </p>
-          <button className="btn-ghost w-full justify-center" onClick={() => navigate('/employer/dashboard')}>
-            ← Back to Dashboard
-          </button>
-        </div>
-      </div>
-    )
-  }
-
-  const submit = async () => {
-    if (!form.title || !form.address || !form.pincode || !form.wage || !form.startDate) {
-      return toast.error('Fill all required fields')
-    }
-    setLoading(true)
-    try {
-      await api.post('/jobs/create', { ...form, workerTypeName: form.workerType })
-      toast.success('Job posted successfully!')
-      navigate('/employer/dashboard/active-jobs')
-    } catch (err) { toast.error(err.response?.data?.message || 'Failed to create job') }
-    finally { setLoading(false) }
-  }
-
-  return (
-    <div className="space-y-6 animate-fade-in max-w-2xl">
-      <h1 className="text-xl font-extrabold text-white">Post a New Job</h1>
-      <div className="card space-y-4">
-        <div>
-          <label className="label">Job Title *</label>
-          <input className="input" placeholder="e.g. Need Mason for 3 days" value={form.title} onChange={e => set('title', e.target.value)} />
-        </div>
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <label className="label">Worker Type</label>
-            <select className="input" value={form.workerType} onChange={e => set('workerType', e.target.value)}>
-              <option value="">Any</option>
-              {workerTypes.map(w => <option key={w._id} value={w.name}>{w.name}</option>)}
-            </select>
-          </div>
-          <div>
-            <label className="label">Daily Wage (₹) *</label>
-            <input type="number" className="input" placeholder="e.g. 600" value={form.wage} onChange={e => set('wage', e.target.value)} />
-          </div>
-        </div>
-        <div>
-          <label className="label">Address *</label>
-          <textarea className="input resize-none min-h-[70px]" placeholder="Work location address" value={form.address} onChange={e => set('address', e.target.value)} />
-        </div>
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <label className="label">Pincode *</label>
-            <input className="input" maxLength={6} placeholder="6-digit" value={form.pincode} onChange={e => set('pincode', e.target.value.replace(/\D/g, ''))} />
-          </div>
-          <div>
-            <label className="label">Start Date *</label>
-            <input type="date" className="input" value={form.startDate} onChange={e => set('startDate', e.target.value)} />
-          </div>
-        </div>
-        <div>
-          <label className="label">Description</label>
-          <textarea className="input resize-none min-h-[90px]" placeholder="Additional details about the job..." value={form.description} onChange={e => set('description', e.target.value)} />
-        </div>
-        <button className="btn-primary w-full justify-center" onClick={submit} disabled={loading}>
-          {loading && <span className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />}
-          Post Job
-        </button>
-      </div>
-    </div>
-  )
-}
-
 /* ─── Find Workers ─── */
 function FindWorkers() {
   const [workers, setWorkers] = useState([])
@@ -271,7 +178,7 @@ function FindWorkers() {
             <label className="label">Select job to send request with</label>
             <select className="input" value={selectedJob} onChange={e => setSelectedJob(e.target.value)}>
               <option value="">— Select a job —</option>
-              {jobs.map(j => <option key={j._id} value={j._id}>{j.title} (₹{j.wage}/day)</option>)}
+              {jobs.map(j => <option key={j._id} value={j._id}>{j.title} (₹{j.wage}/{j.jobType === 'per_hour' ? 'hr' : 'day'})</option>)}
             </select>
           </div>
         )}
@@ -327,7 +234,9 @@ function ActiveJobs() {
   const load = useCallback(async () => {
     try {
       const res = await api.get('/jobs/employer')
-      const active = (res.data.jobs || []).filter(j => !['COMPLETED', 'CANCELLED', 'EXPIRED'].includes(j.status))
+      const active = (res.data.jobs || []).filter(j =>
+        !['COMPLETED', 'CANCELLED', 'EXPIRED'].includes(j.status)
+      )
       setJobs(active)
     } catch { toast.error('Failed to load') }
     finally { setLoading(false) }
@@ -336,41 +245,32 @@ function ActiveJobs() {
   useEffect(() => { load() }, [load])
 
   useSocket({
-    requestAccepted: (data) => {
-      toast.success(`✅ ${data.workerName} accepted: ${data.jobTitle}`)
-      load() // refresh jobs list
-    },
-    requestRejected: (data) => {
-      toast.error(`❌ ${data.workerName} rejected: ${data.jobTitle}`)
+    requestAccepted:  (d) => { toast.success(`✅ ${d.workerName} accepted: ${d.jobTitle}`);  load() },
+    requestRejected:  (d) => { toast.error(`❌ ${d.workerName} rejected: ${d.jobTitle}`);    load() },
+    workerArrived:    (d) => { toast.success(`📍 Worker arrived for: ${d.jobTitle}`);          load() },
+    dailyPayConfirmed:(d) => {
+      toast.success(`💰 Worker confirmed payment for: ${d.jobTitle}`)
+      if (d.isCompleted) { toast.success('🎉 Job fully completed!'); }
       load()
     },
-    workCompleted: (data) => {
-      toast.success(`🏁 Work completed by ${data.workerName}!`)
-      // Update job status to PAYMENT_PENDING in UI
-      setJobs(prev => prev.map(j =>
-        j._id?.toString() === data.jobId?.toString()
-          ? { ...j, status: 'PAYMENT_PENDING', workCompletedAt: data.completedAt }
-          : j
-      ))
-    },
-    paymentReceived: (data) => {
-      toast.success(`✅ ${data.workerName} confirmed payment received`)
-      if (data.isCompleted) {
-        toast.success('Job fully completed! 🎉')
-        load()
-      }
+    hourlyWorkDone: (d) => {
+      toast.success(`🏁 Work done: ${d.actualHours} hrs × ₹${d.wage || ''} = ₹${d.totalAmount}`)
+      load()
     },
   })
 
-  const action = async (jobId, endpoint, msg) => {
+  const action = async (jobId, endpoint, msg, body = null) => {
     setActing(jobId + endpoint)
     try {
-      await api.patch(`/jobs/${jobId}/${endpoint}`)
+      await api.patch(`/jobs/${jobId}/${endpoint}`, body || {})
       toast.success(msg)
       load()
     } catch (err) { toast.error(err.response?.data?.message || 'Action failed') }
     finally { setActing(null) }
   }
+
+  const wageLabel = (job) =>
+    job.jobType === 'per_hour' ? `₹${job.wage}/hr` : `₹${job.wage}/day`
 
   if (loading) return <Spinner />
 
@@ -386,41 +286,142 @@ function ActiveJobs() {
         <div className="space-y-4">
           {jobs.map(job => (
             <div key={job._id} className="card hover:shadow-card-hover transition-all">
+              {/* Header */}
               <div className="flex items-start justify-between gap-4 mb-4">
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 flex-wrap mb-1">
                     <span className="font-bold text-white">{job.title}</span>
                     <StatusBadge status={job.status} />
+                    {job.jobType === 'per_hour' && (
+                      <span className="text-xs px-2 py-0.5 rounded-full bg-violet-500/10 text-violet-400 border border-violet-500/20 font-semibold">
+                        ⏱ Hourly
+                      </span>
+                    )}
+                    {job.urgency === 'urgent' && (
+                      <span className="text-xs px-2 py-0.5 rounded-full bg-[#ff2400]/10 text-[#ff2400] border border-[#ff2400]/20 font-semibold">
+                        🚨 Urgent
+                      </span>
+                    )}
                   </div>
                   <div className="text-sm text-[#6b6b6b] space-y-1">
-                    <div className="flex items-center gap-1.5"><IndianRupee size={13} /> ₹{job.wage}/day</div>
-                    <div className="flex items-center gap-1.5"><MapPin size={13} /> {job.address}, {job.pincode}</div>
-                    <div className="flex items-center gap-1.5"><Calendar size={13} /> Start: {formatDate(job.startDate)}</div>
+                    <div className="flex items-center gap-1.5"><IndianRupee size={13} /> {wageLabel(job)}</div>
+                    <div className="flex items-center gap-1.5"><MapPin size={13} /> {job.address}{job.district ? `, ${job.district}` : ''}</div>
+                    <div className="flex items-center gap-1.5"><Calendar size={13} />
+                      {job.jobType === 'per_day'
+                        ? `Start: ${formatDate(job.startDate)} · ${job.numberOfDays} day${job.numberOfDays > 1 ? 's' : ''}`
+                        : `Date: ${formatDate(job.startDate)} · ~${job.estimatedHours} hr${job.estimatedHours !== 1 ? 's' : ''}`}
+                    </div>
                     {job.worker && (
-                      <div className="flex items-center gap-1.5"><Users size={13} /> Worker: {job.worker.name}
-                        <HonourBadge score={job.worker.honourScore} small /></div>
+                      <div className="flex items-center gap-1.5">
+                        <Users size={13} /> Worker: {job.worker.name}
+                        <HonourBadge score={job.worker.honourScore} small />
+                      </div>
                     )}
                   </div>
                 </div>
               </div>
+
+              {/* Per day — work log progress */}
+              {job.jobType === 'per_day' && job.workLog?.length > 0 && (
+                <div className="mb-4 p-3 rounded-xl bg-[#0e0e0e] border border-[#1e1e1e]">
+                  <div className="text-xs text-[#555] font-semibold mb-2 uppercase tracking-wider">
+                    Daily Progress — {job.totalDaysLogged || 0} of {job.workLog.length} days paid
+                  </div>
+                  <div className="flex flex-wrap gap-1.5">
+                    {job.workLog.map((log, i) => (
+                      <span key={i} className={`w-7 h-7 rounded-lg flex items-center justify-center text-xs font-bold
+                        ${log.dayStatus === 'paid'        ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/20' :
+                          log.dayStatus === 'completed'   ? 'bg-[#ff2400]/15 text-[#ff2400] border border-[#ff2400]/20' :
+                          log.dayStatus === 'in_progress' ? 'bg-violet-500/15 text-violet-400 border border-violet-500/20' :
+                          log.dayStatus === 'absent'      ? 'bg-red-500/15 text-red-400 border border-red-500/20' :
+                          'bg-[#1a1a1a] text-[#333] border border-[#222]'}`}>
+                        {i + 1}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Per hour — time log */}
+              {job.jobType === 'per_hour' && job.timeLog?.startedAt && (
+                <div className="mb-4 p-3 rounded-xl bg-[#0e0e0e] border border-[#1e1e1e]">
+                  <div className="text-xs text-[#555] font-semibold uppercase tracking-wider mb-1.5">Time Log</div>
+                  <div className="grid grid-cols-2 gap-2 text-xs text-[#6b6b6b]">
+                    {job.timeLog.startedAt && <span>Started: {new Date(job.timeLog.startedAt).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}</span>}
+                    {job.timeLog.completedAt && <span>Completed: {new Date(job.timeLog.completedAt).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}</span>}
+                    {job.timeLog.approvedHours > 0 && <span className="text-white font-semibold">Approved: {job.timeLog.approvedHours} hrs</span>}
+                    {job.timeLog.totalAmount > 0 && <span className="text-[#ff2400] font-semibold">Total: ₹{job.timeLog.totalAmount}</span>}
+                  </div>
+                </div>
+              )}
+
+              {/* Action buttons */}
               <div className="flex flex-wrap gap-2 pt-3 border-t border-[#2a2a2a]">
+
+                {/* ACCEPTED → Confirm Booking */}
                 {job.status === 'ACCEPTED' && (
-                  <button onClick={() => action(job._id, 'start', 'Work started!')}
+                  <button onClick={() => action(job._id, 'confirm-booking', 'Booking confirmed!')}
                     disabled={!!acting} className="btn-primary text-xs py-2">
-                    {acting === job._id + 'start' ? <Loader size={13} className="animate-spin" /> : <CheckCircle size={13} />}
-                    Confirm Work Started
+                    {acting === job._id + 'confirm-booking' ? <Loader size={13} className="animate-spin" /> : <CheckCircle size={13} />}
+                    Confirm Booking
                   </button>
                 )}
-                {job.status === 'PAYMENT_PENDING' && !job.paymentConfirmedByEmployer && (
-                  <button onClick={() => action(job._id, 'confirm-payment', 'Payment confirmed!')}
-                    disabled={!!acting} className="btn-primary text-xs py-2 bg-emerald-600 hover:bg-emerald-700">
-                    {acting === job._id + 'confirm-payment' ? <Loader size={13} className="animate-spin" /> : <IndianRupee size={13} />}
-                    Confirm Payment Sent
+
+                {/* BOOKING_CONFIRMED → waiting for worker to arrive */}
+                {job.status === 'BOOKING_CONFIRMED' && (
+                  <div className="text-xs text-[#6b6b6b] flex items-center gap-1.5 px-3 py-2 bg-[#1a1a1a] rounded-xl border border-[#222]">
+                    <AlertCircle size={13} /> Waiting for worker to mark arrival
+                  </div>
+                )}
+
+                {/* ARRIVED → Confirm Arrival */}
+                {job.status === 'ARRIVED' && (
+                  <button onClick={() => action(job._id, 'confirm-arrival', 'Arrival confirmed! Work in progress.')}
+                    disabled={!!acting} className="btn-primary text-xs py-2">
+                    {acting === job._id + 'confirm-arrival' ? <Loader size={13} className="animate-spin" /> : <CheckCircle size={13} />}
+                    Confirm Arrival
+                    <span className="ml-1 text-white/50">(auto in 30 min)</span>
                   </button>
                 )}
-                {job.status === 'PAYMENT_PENDING' && job.paymentConfirmedByEmployer && (
-                  <div className="text-xs text-[#6b6b6b] flex items-center gap-1.5 px-2 py-1 bg-[#1a1a1a] rounded-lg">
-                    <AlertCircle size={13} /> Waiting for worker to confirm receipt
+
+                {/* WORK_IN_PROGRESS — per_day → Mark Day Complete */}
+                {job.status === 'WORK_IN_PROGRESS' && job.jobType === 'per_day' && (
+                  <button onClick={() => action(job._id, 'day-complete', 'Day logged! Daily pay released to worker.')}
+                    disabled={!!acting} className="btn-primary text-xs py-2">
+                    {acting === job._id + 'day-complete' ? <Loader size={13} className="animate-spin" /> : <IndianRupee size={13} />}
+                    Mark Day Complete + Release Pay
+                  </button>
+                )}
+
+                {/* WORK_DONE — per_hour → Approve Hours */}
+                {job.status === 'WORK_DONE' && job.jobType === 'per_hour' && (
+                  <button
+                    onClick={() => {
+                      const hrs = job.timeLog?.approvedHours ||
+                        parseFloat(((new Date(job.timeLog?.completedAt) - new Date(job.timeLog?.startedAt)) / 3600000).toFixed(2))
+                      const total = (hrs * job.wage).toFixed(2)
+                      if (confirm(`Approve ${hrs} hrs × ₹${job.wage}/hr = ₹${total}?
+Click OK to release payment.`)) {
+                        action(job._id, 'approve-pay', `₹${total} released!`, { approvedHours: hrs })
+                      }
+                    }}
+                    disabled={!!acting} className="btn-primary text-xs py-2">
+                    {acting === job._id + 'approve-pay' ? <Loader size={13} className="animate-spin" /> : <CheckCircle size={13} />}
+                    Approve Hours & Release Pay
+                  </button>
+                )}
+
+                {/* WORK_DONE — per_day last day → waiting for worker */}
+                {job.status === 'WORK_DONE' && job.jobType === 'per_day' && (
+                  <div className="text-xs text-emerald-400 flex items-center gap-1.5 px-3 py-2 bg-emerald-500/8 rounded-xl border border-emerald-500/20">
+                    <CheckCircle size={13} /> All days done — waiting for worker payment confirmations
+                  </div>
+                )}
+
+                {/* PAYMENT_PENDING → waiting for worker */}
+                {job.status === 'PAYMENT_PENDING' && (
+                  <div className="text-xs text-[#6b6b6b] flex items-center gap-1.5 px-3 py-2 bg-[#1a1a1a] rounded-xl border border-[#222]">
+                    <AlertCircle size={13} /> Waiting for worker to confirm payment receipt
                   </div>
                 )}
               </div>
@@ -471,6 +472,50 @@ function JobHistory() {
   )
 }
 
+/* ─── Honour Ring SVG ─── */
+function HonourRing({ score = 50, size = 96 }) {
+  const r = 38, cx = 48, cy = 48
+  const circ = 2 * Math.PI * r
+  const offset = circ - (score / 100) * circ
+  const colour = score >= 85 ? '#4ade80' : score >= 70 ? '#a3e635' : score >= 50 ? '#fb923c' : '#f87171'
+  return (
+    <svg width={size} height={size} viewBox="0 0 96 96">
+      <circle cx={cx} cy={cy} r={r} fill="none" stroke="#1e1e1e" strokeWidth="7" />
+      <circle cx={cx} cy={cy} r={r} fill="none" stroke={colour} strokeWidth="7"
+        strokeLinecap="round" strokeDasharray={circ} strokeDashoffset={offset}
+        transform="rotate(-90 48 48)" style={{ transition: 'stroke-dashoffset 1s ease' }} />
+      <text x="48" y="44" textAnchor="middle" fontSize="18" fontWeight="800" fill={colour}>{score}</text>
+      <text x="48" y="58" textAnchor="middle" fontSize="9" fill="#4a4a4a">/100</text>
+    </svg>
+  )
+}
+
+/* ─── Info Row ─── */
+function InfoRow({ label, value, icon: Icon }) {
+  return (
+    <div className="flex items-start gap-3 py-2.5 border-b border-[#1a1a1a] last:border-0">
+      {Icon && <Icon size={13} className="text-[#ff2400] mt-0.5 shrink-0" />}
+      <div className="flex-1 flex justify-between gap-3 min-w-0">
+        <span className="text-xs text-[#4a4a4a] shrink-0">{label}</span>
+        <span className="text-sm text-white font-medium text-right capitalize truncate">{value || '—'}</span>
+      </div>
+    </div>
+  )
+}
+
+/* ─── Section Block ─── */
+function Section({ title, icon: Icon, children }) {
+  return (
+    <div className="bg-[#0e0e0e] border border-[#1e1e1e] rounded-2xl p-4">
+      <div className="flex items-center gap-2 mb-3 pb-2 border-b border-[#1a1a1a]">
+        <Icon size={13} className="text-[#ff2400]" />
+        <span className="text-xs font-bold text-[#6b6b6b] uppercase tracking-widest">{title}</span>
+      </div>
+      {children}
+    </div>
+  )
+}
+
 /* ─── Profile ─── */
 function EmployerProfile() {
   const { user, updateUser } = useAuth()
@@ -483,16 +528,14 @@ function EmployerProfile() {
     district:            user?.district            || '',
     block:               user?.block               || '',
     pincode:             user?.pincode             || '',
-    // Individual editable
     labourCardNumber:    user?.labourCardNumber     || '',
-    // Organisation editable
     labourLicenseNumber: user?.labourLicenseNumber  || '',
   })
-  const [loading, setLoading]         = useState(false)
-  const [honourLogs, setHonourLogs]   = useState([])
+  const [loading, setLoading]       = useState(false)
+  const [honourLogs, setHonourLogs] = useState([])
   const [logsLoading, setLogsLoading] = useState(true)
 
-  // Geo state
+  // Geo
   const [states, setStates]         = useState([])
   const [districts, setDistricts]   = useState([])
   const [blocks, setBlocks]         = useState([])
@@ -501,47 +544,36 @@ function EmployerProfile() {
   useEffect(() => {
     api.get('/employer/honour-log')
       .then(r => setHonourLogs(r.data.logs || []))
-      .catch(() => { })
+      .catch(() => {})
       .finally(() => setLogsLoading(false))
   }, [])
 
-  // Load states when editing opens
   useEffect(() => {
     if (!editing) return
     setGeoLoading(p => ({ ...p, states: true }))
-    api.get('/geo/states')
-      .then(r => setStates(r.data.states || []))
-      .finally(() => setGeoLoading(p => ({ ...p, states: false })))
+    api.get('/geo/states').then(r => setStates(r.data.states || [])).finally(() => setGeoLoading(p => ({ ...p, states: false })))
   }, [editing])
 
-  // Load districts when state changes
   useEffect(() => {
     if (!form.state) { setDistricts([]); setBlocks([]); return }
     setGeoLoading(p => ({ ...p, districts: true }))
     setDistricts([]); setBlocks([])
-    api.get(`/geo/districts?state=${encodeURIComponent(form.state)}`)
-      .then(r => setDistricts(r.data.districts || []))
-      .finally(() => setGeoLoading(p => ({ ...p, districts: false })))
+    api.get(`/geo/districts?state=${encodeURIComponent(form.state)}`).then(r => setDistricts(r.data.districts || [])).finally(() => setGeoLoading(p => ({ ...p, districts: false })))
   }, [form.state])
 
-  // Load blocks when district changes
   useEffect(() => {
     if (!form.district) { setBlocks([]); return }
     setGeoLoading(p => ({ ...p, blocks: true }))
     setBlocks([])
-    api.get(`/geo/blocks?state=${encodeURIComponent(form.state)}&district=${encodeURIComponent(form.district)}`)
-      .then(r => setBlocks(r.data.blocks || []))
-      .finally(() => setGeoLoading(p => ({ ...p, blocks: false })))
+    api.get(`/geo/blocks?state=${encodeURIComponent(form.state)}&district=${encodeURIComponent(form.district)}`).then(r => setBlocks(r.data.blocks || [])).finally(() => setGeoLoading(p => ({ ...p, blocks: false })))
   }, [form.district])
 
-  const setField = (k, v) => {
-    setForm(p => {
-      const next = { ...p, [k]: v }
-      if (k === 'state')    { next.district = ''; next.block = '' }
-      if (k === 'district') { next.block = '' }
-      return next
-    })
-  }
+  const setField = (k, v) => setForm(p => {
+    const next = { ...p, [k]: v }
+    if (k === 'state')    { next.district = ''; next.block = '' }
+    if (k === 'district') { next.block = '' }
+    return next
+  })
 
   const save = async () => {
     setLoading(true)
@@ -554,191 +586,280 @@ function EmployerProfile() {
     finally { setLoading(false) }
   }
 
-  const formatDate = (d) => {
-    if (!d) return '—'
-    return new Date(d).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })
-  }
+  const fd = (d) => d ? new Date(d).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : '—'
 
-  // Locked fields differ by type
+  const honourLabel = (s) => s >= 85 ? 'Excellent' : s >= 70 ? 'Good' : s >= 50 ? 'Average' : 'Poor'
+  const honourColor = (s) => s >= 85 ? 'text-emerald-400' : s >= 70 ? 'text-lime-400' : s >= 50 ? 'text-amber-400' : 'text-red-400'
+
   const lockedFields = isOrg
-    ? [
-        ['Organisation Name',   user?.name              || '—'],
-        ['Establishment Date',  formatDate(user?.establishmentDate)],
-        ['GST Number',          user?.gstNumber          || 'Not provided'],
-      ]
-    : [
-        ['Full Name',           user?.name              || '—'],
-        ["Father's Name",       user?.fatherName         || '—'],
-        ['Gender',              user?.gender             || '—'],
-        ['Date of Birth',       formatDate(user?.dob)],
-      ]
+    ? [['Organisation Name', user?.name], ['Established', fd(user?.establishmentDate)], ['GST Number', user?.gstNumber || 'Not provided']]
+    : [['Full Name', user?.name], ["Father's Name", user?.fatherName], ['Gender', user?.gender], ['Date of Birth', fd(user?.dob)]]
 
   return (
-    <div className="space-y-6 animate-fade-in max-w-xl">
+    <div className="animate-fade-in space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-xl font-extrabold text-white">My Profile</h1>
-        {!editing && <button className="btn-secondary text-xs" onClick={() => setEditing(true)}>Edit</button>}
+        {!editing
+          ? <button className="btn-secondary text-xs" onClick={() => setEditing(true)}>Edit Profile</button>
+          : <div className="flex gap-2">
+              <button className="btn-primary text-xs py-2" onClick={save} disabled={loading}>{loading ? 'Saving…' : 'Save Changes'}</button>
+              <button className="btn-ghost text-xs py-2" onClick={() => setEditing(false)}>Cancel</button>
+            </div>
+        }
       </div>
 
-      <div className="card">
-        <div className="flex items-center gap-4 mb-6">
-          <div className="w-16 h-16 bg-[#ff2400]/10 border border-[#ff2400]/20 rounded-2xl flex items-center justify-center text-[#ff2400] text-2xl font-bold">
-            {user?.name?.[0]?.toUpperCase()}
+      {/* ── Two column layout ── */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
+
+        {/* ── LEFT: Hero panel ── */}
+        <div className="lg:col-span-1 space-y-4">
+
+          {/* Avatar + honour ring card */}
+          <div className="card text-center py-7 px-4 relative overflow-hidden">
+            {/* Subtle glow behind avatar */}
+            <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+              <div className="w-40 h-40 bg-[#ff2400]/5 rounded-full blur-3xl" />
+            </div>
+
+            {/* Avatar */}
+            <div className="relative inline-flex mb-4">
+              <div className="w-20 h-20 bg-gradient-to-br from-[#ff2400]/20 to-[#ff2400]/5 border-2 border-[#ff2400]/30 rounded-2xl flex items-center justify-center text-[#ff2400] text-3xl font-black shadow-glow-sm">
+                {user?.name?.[0]?.toUpperCase()}
+              </div>
+              {/* Status dot */}
+              <div className={`absolute -bottom-1 -right-1 w-4 h-4 rounded-full border-2 border-[#111]
+                ${user?.status === 'approved' ? 'bg-emerald-400' : user?.status === 'rejected' ? 'bg-red-400' : 'bg-amber-400'}`} />
+            </div>
+
+            <div className="font-extrabold text-white text-lg leading-tight">{user?.name}</div>
+            <div className="text-xs text-[#ff2400] font-semibold mt-0.5 capitalize">{user?.employerType || 'individual'} Employer</div>
+            <div className="text-xs text-[#4a4a4a] mt-0.5">+91 {user?.mobile}</div>
+
+            {/* Status badge */}
+            <div className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold mt-3 border
+              ${user?.status === 'approved'  ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400' :
+                user?.status === 'rejected'  ? 'bg-red-500/10 border-red-500/20 text-red-400' :
+                                               'bg-amber-500/10 border-amber-500/20 text-amber-400'}`}>
+              <span className={`w-1.5 h-1.5 rounded-full ${user?.status === 'approved' ? 'bg-emerald-400' : user?.status === 'rejected' ? 'bg-red-400' : 'bg-amber-400 animate-pulse'}`} />
+              {user?.status === 'approved' ? 'Verified Account' : user?.status === 'rejected' ? 'Account Rejected' : 'Pending Approval'}
+            </div>
+
+            {/* Honour ring */}
+            <div className="flex flex-col items-center mt-6 pt-5 border-t border-[#1e1e1e]">
+              <HonourRing score={user?.honourScore ?? 50} />
+              <div className={`text-sm font-bold mt-2 ${honourColor(user?.honourScore ?? 50)}`}>
+                {honourLabel(user?.honourScore ?? 50)}
+              </div>
+              <div className="text-xs text-[#4a4a4a] mt-0.5">Honour Score</div>
+            </div>
           </div>
-          <div>
-            <div className="font-bold text-xl text-white">{user?.name}</div>
-            <div className="text-sm text-[#6b6b6b]">+91 {user?.mobile}</div>
-            <div className="text-xs text-[#ff2400] mt-0.5 capitalize">{user?.employerType || 'individual'} employer</div>
-            <HonourBadge score={user?.honourScore} small />
+
+          {/* Quick stats */}
+          <div className="grid grid-cols-2 gap-3">
+            {[
+              { label: 'Jobs Posted',   value: user?.activeJobs    ?? 0, color: 'text-[#ff2400]' },
+              { label: 'Completed',     value: user?.completedJobs ?? 0, color: 'text-emerald-400' },
+            ].map(s => (
+              <div key={s.label} className="card text-center py-4">
+                <div className={`text-2xl font-black ${s.color}`}>{s.value}</div>
+                <div className="text-xs text-[#4a4a4a] mt-0.5">{s.label}</div>
+              </div>
+            ))}
+          </div>
+
+          {/* Member since */}
+          <div className="card py-3 px-4 flex items-center gap-3">
+            <Calendar size={14} className="text-[#ff2400] shrink-0" />
+            <div>
+              <div className="text-xs text-[#4a4a4a]">Member since</div>
+              <div className="text-sm font-semibold text-white">{fd(user?.createdAt)}</div>
+            </div>
           </div>
         </div>
 
-        {editing ? (
-          <div className="space-y-3">
+        {/* ── RIGHT: Info panels ── */}
+        <div className="lg:col-span-2 space-y-4">
 
-            {/* ── Locked identity fields ── */}
-            <div className="p-3 bg-[#1a1a1a] border border-[#2a2a2a] rounded-xl space-y-2.5">
-              <p className="text-xs text-[#4a4a4a] flex items-center gap-1.5">
-                🔒 <span>These fields cannot be changed after registration</span>
-              </p>
-              {lockedFields.map(([k, v]) => (
-                <div key={k} className="flex justify-between text-sm">
-                  <span className="text-[#4a4a4a]">{k}</span>
-                  <span className="text-[#6b6b6b] capitalize">{v}</span>
+          {editing ? (
+            /* ═══ EDIT MODE ═══ */
+            <>
+              {/* Locked identity */}
+              <Section title="Identity — Cannot be Changed" icon={Lock}>
+                <div className="space-y-1">
+                  {lockedFields.map(([k, v]) => (
+                    <div key={k} className="flex justify-between text-sm py-1.5">
+                      <span className="text-[#3a3a3a] text-xs">{k}</span>
+                      <span className="text-[#5a5a5a] capitalize text-xs">{v || '—'}</span>
+                    </div>
+                  ))}
                 </div>
-              ))}
-            </div>
+              </Section>
 
-            {/* ── Editable fields ── */}
-            <div>
-              <label className="label">Address</label>
-              <textarea className="input resize-none min-h-[70px]" value={form.address}
-                onChange={e => setField('address', e.target.value)} />
-            </div>
-
-            {/* State */}
-            <div>
-              <label className="label">State</label>
-              <div className="relative">
-                <select className="input bg-[#141414]" value={form.state}
-                  onChange={e => setField('state', e.target.value)} disabled={geoLoading.states}>
-                  <option value="">{geoLoading.states ? 'Loading...' : 'Select state'}</option>
-                  {states.map(s => <option key={s} value={s}>{s}</option>)}
-                </select>
-                {geoLoading.states && <span className="absolute right-3 top-3 text-[#ff2400] text-xs animate-spin">⟳</span>}
-              </div>
-            </div>
-
-            {/* District + Block */}
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="label">District</label>
-                <select className="input bg-[#141414]" value={form.district}
-                  onChange={e => setField('district', e.target.value)} disabled={!form.state || geoLoading.districts}>
-                  <option value="">{geoLoading.districts ? 'Loading...' : form.state ? 'Select district' : 'Select state first'}</option>
-                  {districts.map(d => <option key={d} value={d}>{d}</option>)}
-                </select>
-              </div>
-              <div>
-                <label className="label">Block</label>
-                <select className="input bg-[#141414]" value={form.block}
-                  onChange={e => setField('block', e.target.value)} disabled={!form.district || geoLoading.blocks}>
-                  <option value="">{geoLoading.blocks ? 'Loading...' : form.district ? 'Select block' : 'Select district first'}</option>
-                  {blocks.map(b => <option key={b} value={b}>{b}</option>)}
-                </select>
-              </div>
-            </div>
-
-            <div>
-              <label className="label">Pincode</label>
-              <input className="input" maxLength={6} value={form.pincode}
-                onChange={e => setField('pincode', e.target.value.replace(/\D/g, ''))} />
-            </div>
-
-            {/* Labour card — individual only */}
-            {!isOrg && (
-              <div>
-                <label className="label">Labour Card Number <span className="text-[#3a3a3a] text-xs">(optional)</span></label>
-                <input className="input" placeholder="Government-issued labour card (if any)"
-                  value={form.labourCardNumber}
-                  onChange={e => setField('labourCardNumber', e.target.value)} />
-              </div>
-            )}
-
-            {/* Labour license — organisation only */}
-            {isOrg && (
-              <div>
-                <label className="label">Labour License Number <span className="text-[#3a3a3a] text-xs">(optional)</span></label>
-                <input className="input" placeholder="Govt issued labour license (if any)"
-                  value={form.labourLicenseNumber}
-                  onChange={e => setField('labourLicenseNumber', e.target.value)} />
-              </div>
-            )}
-
-            <div className="flex gap-2 pt-2">
-              <button className="btn-primary" onClick={save} disabled={loading}>{loading ? 'Saving...' : 'Save'}</button>
-              <button className="btn-ghost" onClick={() => setEditing(false)}>Cancel</button>
-            </div>
-          </div>
-        ) : (
-          <div className="space-y-3 text-sm">
-            {[
-              ['Type',          isOrg ? 'Organisation' : 'Individual'],
-              ['Category',      user?.employerCategoryName || '—'],
-              ['Subcategory',   user?.employerSubcategory  || '—'],
-              ...(isOrg ? [
-                ['Org Name',          user?.name                  || '—'],
-                ['Establishment Date',formatDate(user?.establishmentDate)],
-                ['GST Number',        user?.gstNumber              || 'Not provided'],
-                ['Labour License',    user?.labourLicenseNumber    || 'Not provided'],
-              ] : [
-                ['Full Name',         user?.name                  || '—'],
-                ["Father's Name",     user?.fatherName             || '—'],
-                ['Gender',            user?.gender                 || '—'],
-                ['Date of Birth',     formatDate(user?.dob)],
-                ['Labour Card',       user?.labourCardNumber       || 'Not provided'],
-              ]),
-              ['Address',       user?.address  || '—'],
-              ['State',         user?.state    || '—'],
-              ['District',      user?.district || '—'],
-              ['Block',         user?.block    || '—'],
-              ['Pincode',       user?.pincode  || '—'],
-              ['Completed Jobs',user?.completedJobs || 0],
-              ['Member Since',  formatDate(user?.createdAt)],
-            ].map(([k, v]) => (
-              <div key={k} className="flex justify-between gap-4 py-2 border-b border-[#2a2a2a] last:border-0">
-                <span className="text-[#6b6b6b]">{k}</span>
-                <span className="text-white font-medium text-right capitalize">{v}</span>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-      {/* ── Honour Score History ── */}
-      <div className="card">
-        <h2 className="font-bold text-white mb-4 flex items-center gap-2">
-          <Star size={16} className="text-[#ff2400]" /> Honour Score History
-        </h2>
-        {logsLoading ? (
-          <div className="flex justify-center py-6"><div className="w-6 h-6 border-2 border-[#ff2400] border-t-transparent rounded-full animate-spin" /></div>
-        ) : honourLogs.length === 0 ? (
-          <div className="text-center py-6 text-[#4a4a4a] text-sm">No score changes yet</div>
-        ) : (
-          <div className="space-y-2">
-            {honourLogs.map(log => (
-              <div key={log._id} className="flex items-center justify-between py-2.5 border-b border-[#1e1e1e] last:border-0">
-                <div className="flex items-center gap-3">
-                  <span className={`text-sm font-bold w-10 text-right ${log.change > 0 ? 'text-emerald-400' : 'text-red-400'}`}>
-                    {log.change > 0 ? '+' : ''}{log.change}
-                  </span>
+              {/* Location fieldset */}
+              <Section title="Location Details" icon={MapPin}>
+                <div className="space-y-3 pt-1">
                   <div>
-                    <div className="text-sm text-[#a3a3a3]">{log.reason}</div>
-                    <div className="text-xs text-[#4a4a4a]">{formatDate(log.createdAt)}</div>
+                    <label className="label">Address</label>
+                    <textarea className="input resize-none min-h-[68px]" value={form.address} onChange={e => setField('address', e.target.value)} />
+                  </div>
+                  <div>
+                    <label className="label">State</label>
+                    <div className="relative">
+                      <select className="input bg-[#141414]" value={form.state} onChange={e => setField('state', e.target.value)} disabled={geoLoading.states}>
+                        <option value="">{geoLoading.states ? 'Loading…' : 'Select state'}</option>
+                        {states.map(s => <option key={s} value={s}>{s}</option>)}
+                      </select>
+                      {geoLoading.states && <span className="absolute right-3 top-3 text-[#ff2400] text-xs">⟳</span>}
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="label">District</label>
+                      <select className="input bg-[#141414]" value={form.district} onChange={e => setField('district', e.target.value)} disabled={!form.state || geoLoading.districts}>
+                        <option value="">{geoLoading.districts ? 'Loading…' : form.state ? 'Select district' : 'Select state first'}</option>
+                        {districts.map(d => <option key={d} value={d}>{d}</option>)}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="label">Block</label>
+                      <select className="input bg-[#141414]" value={form.block} onChange={e => setField('block', e.target.value)} disabled={!form.district || geoLoading.blocks}>
+                        <option value="">{geoLoading.blocks ? 'Loading…' : form.district ? 'Select block' : 'Select district first'}</option>
+                        {blocks.map(b => <option key={b} value={b}>{b}</option>)}
+                      </select>
+                    </div>
+                  </div>
+                  <div>
+                    <label className="label">Pincode</label>
+                    <input className="input" maxLength={6} value={form.pincode} onChange={e => setField('pincode', e.target.value.replace(/\D/g, ''))} />
                   </div>
                 </div>
-                <span className="text-xs text-[#6b6b6b] font-mono">{log.newScore}/100</span>
-              </div>
-            ))}
+              </Section>
+
+              {/* Documents fieldset */}
+              <Section title="Documents" icon={Briefcase}>
+                <div className="pt-1">
+                  {!isOrg ? (
+                    <div>
+                      <label className="label">Labour Card Number <span className="text-[#2a2a2a] normal-case">(optional)</span></label>
+                      <input className="input" placeholder="Govt issued labour card" value={form.labourCardNumber} onChange={e => setField('labourCardNumber', e.target.value)} />
+                    </div>
+                  ) : (
+                    <div>
+                      <label className="label">Labour License Number <span className="text-[#2a2a2a] normal-case">(optional)</span></label>
+                      <input className="input" placeholder="Govt issued labour license" value={form.labourLicenseNumber} onChange={e => setField('labourLicenseNumber', e.target.value)} />
+                    </div>
+                  )}
+                </div>
+              </Section>
+            </>
+          ) : (
+            /* ═══ VIEW MODE ═══ */
+            <>
+              {/* Identity section */}
+              <Section title={isOrg ? 'Organisation Identity' : 'Personal Identity'} icon={User}>
+                {isOrg ? (
+                  <>
+                    <InfoRow icon={Briefcase} label="Org Name"        value={user?.name} />
+                    <InfoRow icon={Calendar}  label="Established"     value={fd(user?.establishmentDate)} />
+                    <InfoRow icon={Star}      label="GST Number"      value={user?.gstNumber || 'Not provided'} />
+                    <InfoRow icon={Briefcase} label="Labour License"  value={user?.labourLicenseNumber || 'Not provided'} />
+                  </>
+                ) : (
+                  <>
+                    <InfoRow icon={User}     label="Full Name"        value={user?.name} />
+                    <InfoRow icon={User}     label="Father's Name"    value={user?.fatherName} />
+                    <InfoRow icon={User}     label="Gender"           value={user?.gender} />
+                    <InfoRow icon={Calendar} label="Date of Birth"    value={fd(user?.dob)} />
+                    <InfoRow icon={Briefcase}label="Labour Card"      value={user?.labourCardNumber || 'Not provided'} />
+                  </>
+                )}
+              </Section>
+
+              {/* Business section */}
+              <Section title="Business Details" icon={Briefcase}>
+                <InfoRow icon={Star}     label="Type"        value={isOrg ? 'Organisation' : 'Individual'} />
+                <InfoRow icon={Star}     label="Category"    value={user?.employerCategoryName} />
+                <InfoRow icon={Star}     label="Subcategory" value={user?.employerSubcategory} />
+              </Section>
+
+              {/* Location section */}
+              <Section title="Location" icon={MapPin}>
+                <InfoRow icon={MapPin} label="Address"  value={user?.address} />
+                <InfoRow icon={MapPin} label="State"    value={user?.state} />
+                <InfoRow icon={MapPin} label="District" value={user?.district} />
+                <InfoRow icon={MapPin} label="Block"    value={user?.block} />
+                <InfoRow icon={MapPin} label="Pincode"  value={user?.pincode} />
+              </Section>
+
+              {/* Contact */}
+              <Section title="Contact" icon={Bell}>
+                <InfoRow icon={Bell}   label="Mobile" value={`+91 ${user?.mobile}`} />
+                <InfoRow icon={Bell}   label="Email"  value={user?.email} />
+              </Section>
+            </>
+          )}
+        </div>
+      </div>
+
+      {/* ── Honour Score History — Timeline ── */}
+      <div className="card">
+        <div className="flex items-center justify-between mb-5">
+          <h2 className="font-bold text-white flex items-center gap-2">
+            <Star size={15} className="text-[#ff2400]" /> Honour Score History
+          </h2>
+          {honourLogs.length > 0 && (
+            <span className="text-xs text-[#4a4a4a]">{honourLogs.length} events</span>
+          )}
+        </div>
+
+        {logsLoading ? (
+          <div className="flex justify-center py-8">
+            <div className="w-6 h-6 border-2 border-[#ff2400] border-t-transparent rounded-full animate-spin" />
+          </div>
+        ) : honourLogs.length === 0 ? (
+          <div className="text-center py-10">
+            <Star size={28} className="text-[#1e1e1e] mx-auto mb-2" />
+            <p className="text-sm text-[#3a3a3a]">No score changes yet</p>
+            <p className="text-xs text-[#2a2a2a] mt-1">Complete jobs on time to build your score</p>
+          </div>
+        ) : (
+          /* Timeline */
+          <div className="relative">
+            {/* Vertical line */}
+            <div className="absolute left-[19px] top-2 bottom-2 w-px bg-[#1e1e1e]" />
+
+            <div className="space-y-1">
+              {honourLogs.map((log, i) => {
+                const isPos = log.change > 0
+                return (
+                  <div key={log._id} className={`relative flex items-start gap-4 py-3 px-3 rounded-xl transition-colors
+                    ${i % 2 === 0 ? 'hover:bg-[#0e0e0e]' : 'hover:bg-[#0e0e0e]'}`}>
+
+                    {/* Timeline dot */}
+                    <div className={`relative z-10 w-10 h-10 rounded-xl border flex flex-col items-center justify-center shrink-0 font-black text-sm
+                      ${isPos
+                        ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400'
+                        : 'bg-red-500/10 border-red-500/20 text-red-400'}`}>
+                      {isPos ? '+' : ''}{log.change}
+                    </div>
+
+                    {/* Content */}
+                    <div className="flex-1 min-w-0 pt-0.5">
+                      <div className="text-sm text-[#e0e0e0] font-medium leading-tight">{log.reason}</div>
+                      <div className="text-xs text-[#4a4a4a] mt-0.5">{formatDate(log.createdAt)}</div>
+                    </div>
+
+                    {/* New score badge */}
+                    <div className={`shrink-0 text-xs font-bold px-2.5 py-1 rounded-lg border
+                      ${isPos
+                        ? 'bg-emerald-500/8 border-emerald-500/15 text-emerald-400'
+                        : 'bg-red-500/8 border-red-500/15 text-red-400'}`}>
+                      {log.newScore}/100
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
           </div>
         )}
       </div>

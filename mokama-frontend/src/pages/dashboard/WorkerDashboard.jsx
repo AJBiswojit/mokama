@@ -138,7 +138,7 @@ function JobRequests() {
 
   useSocket({
     requestReceived: (data) => {
-      toast.success(`New request: ${data.jobTitle} — ₹${data.wage}/day`)
+      toast.success(`New request: ${data.jobTitle} — ₹${data.wage}/${data.jobType === 'per_hour' ? 'hr' : 'day'}`)
       load() // refresh requests list
     },
   })
@@ -184,9 +184,26 @@ function JobRequests() {
                     </div>
                     <div className="space-y-1.5 text-sm text-[#6b6b6b]">
                       <div className="flex items-center gap-1.5"><Briefcase size={13} /> {job?.employer?.name} · {job?.employer?.employerCategoryName}</div>
-                      <div className="flex items-center gap-1.5"><MapPin size={13} /> {job?.address}, {job?.pincode}</div>
-                      <div className="flex items-center gap-1.5"><IndianRupee size={13} /> ₹{job?.wage}/day</div>
-                      <div className="flex items-center gap-1.5"><Calendar size={13} /> Start: {formatDate(job?.startDate)}</div>
+                      <div className="flex items-center gap-1.5"><MapPin size={13} /> {job?.address}{job?.district ? `, ${job?.district}` : ''}</div>
+                      <div className="flex items-center gap-1.5"><IndianRupee size={13} />
+                        <strong className="text-white">₹{job?.wage}/{job?.jobType === 'per_hour' ? 'hr' : 'day'}</strong>
+                        {job?.jobType === 'per_hour'
+                          ? <span className="text-xs ml-1 px-1.5 py-0.5 rounded-full bg-violet-500/10 text-violet-400 border border-violet-500/20">⏱ Hourly</span>
+                          : <span className="text-xs ml-1 px-1.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">📅 Per Day</span>
+                        }
+                      </div>
+                      {job?.jobType === 'per_day' && (
+                        <div className="flex items-center gap-1.5"><Calendar size={13} />
+                          Start: {formatDate(job?.startDate)} · {job?.numberOfDays} day{job?.numberOfDays > 1 ? 's' : ''}
+                          {job?.reportTime && <span className="ml-1">· Report by {job?.reportTime}</span>}
+                        </div>
+                      )}
+                      {job?.jobType === 'per_hour' && (
+                        <div className="flex items-center gap-1.5"><Calendar size={13} />
+                          Date: {formatDate(job?.startDate)} · ~{job?.estimatedHours} hr{job?.estimatedHours !== 1 ? 's' : ''}
+                          {job?.arrivalTime && <span className="ml-1">· Arrive by {job?.arrivalTime}</span>}
+                        </div>
+                      )}
                     </div>
                     <div className={`mt-2 text-xs font-medium flex items-center gap-1 ${expired ? 'text-red-500' : minsLeft < 3 ? 'text-orange-500' : 'text-[#4a4a4a]'}`}>
                       <AlertCircle size={12} />
@@ -230,40 +247,34 @@ function JobRequests() {
 
 /* ─── Active Work ─── */
 function ActiveWork() {
-  const [jobs, setJobs] = useState([])
+  const [jobs, setJobs]     = useState([])
   const [loading, setLoading] = useState(true)
-  const [acting, setActing] = useState(null)
+  const [acting, setActing]   = useState(null)
 
   const load = useCallback(async () => {
     setLoading(true)
     try {
-      // Send each status as a separate query param so backend handles it properly
-      const res = await api.get('/jobs/worker?status=ACCEPTED,WORKING,PAYMENT_PENDING')
+      const res = await api.get(
+        '/jobs/worker?status=ACCEPTED,BOOKING_CONFIRMED,ARRIVED,WORK_IN_PROGRESS,WORK_DONE,PAYMENT_PENDING'
+      )
       setJobs(res.data.jobs || [])
     } catch { toast.error('Failed to load active jobs') }
     finally { setLoading(false) }
   }, [])
 
   useSocket({
-    workStarted: (data) => {
-      toast.success(`Work started confirmed for: ${data.jobTitle}`)
-      setJob(prev => prev ? { ...prev, status: 'WORKING', workStartedAt: data.startedAt } : prev)
-    },
-    paymentConfirmed: (data) => {
-      toast.success(`Payment sent by employer for: ${data.jobTitle}`)
-      load() // refresh job
-      if (data.isCompleted) {
-        toast.success('Job completed! 🎉')
-      }
-    },
+    bookingConfirmed:     (d) => { toast.success(`📋 Booking confirmed: ${d.jobTitle}`);               load() },
+    arrivalConfirmed:     (d) => { toast.success(`✅ Employer confirmed your arrival: ${d.jobTitle}`); load() },
+    dailyPayReleased:     (d) => { toast.success(`💰 ${d.message}`);                                   load() },
+    hourlyPaymentReleased:(d) => { toast.success(`💰 ${d.message}`);                                   load() },
   })
 
   useEffect(() => { load() }, [load])
 
-  const action = async (jobId, endpoint, msg) => {
+  const action = async (jobId, endpoint, msg, body = null) => {
     setActing(jobId + endpoint)
     try {
-      await api.patch(`/jobs/${jobId}/${endpoint}`)
+      await api.patch(`/jobs/${jobId}/${endpoint}`, body || {})
       toast.success(msg)
       load()
     } catch (err) { toast.error(err.response?.data?.message || 'Action failed') }
@@ -283,116 +294,331 @@ function ActiveWork() {
       </div>
 
       {jobs.length === 0 ? (
-        <EmptyState icon={<Briefcase size={32} />} title="No active jobs" desc="Once an employer accepts your acceptance, the job will appear here" />
+        <EmptyState icon={<Briefcase size={32} />} title="No active jobs"
+          desc="Accepted jobs will appear here" />
       ) : (
         <div className="space-y-4">
-          {jobs.map(job => (
-            <div key={job._id} className="bg-[#141414] border border-[#2a2a2a] rounded-2xl overflow-hidden hover:border-[#3a3a3a] transition-all">
+          {jobs.map(job => {
+            const isPerHour = job.jobType === 'per_hour'
+            const wageLabel = isPerHour ? `₹${job.wage}/hr` : `₹${job.wage}/day`
+            const barColor  =
+              job.status === 'BOOKING_CONFIRMED' ? 'bg-blue-500'    :
+              job.status === 'ARRIVED'           ? 'bg-violet-500'  :
+              job.status === 'WORK_IN_PROGRESS'  ? 'bg-emerald-500' :
+              job.status === 'WORK_DONE'         ? 'bg-amber-500'   :
+              job.status === 'PAYMENT_PENDING'   ? 'bg-[#ff2400]'   : 'bg-[#2a2a2a]'
 
-              {/* Status colour bar at top */}
-              <div className={`h-1 w-full ${job.status === 'ACCEPTED' ? 'bg-violet-500' :
-                job.status === 'WORKING' ? 'bg-emerald-500' :
-                  job.status === 'PAYMENT_PENDING' ? 'bg-[#ff2400]' : 'bg-[#2a2a2a]'
-                }`} />
+            return (
+              <div key={job._id} className="bg-[#141414] border border-[#2a2a2a] rounded-2xl overflow-hidden hover:border-[#3a3a3a] transition-all">
+                <div className={`h-1 w-full ${barColor}`} />
+                <div className="p-5">
 
-              <div className="p-5">
-                {/* Header */}
-                <div className="flex items-start justify-between gap-4 mb-4">
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 flex-wrap mb-2">
-                      <span className="font-bold text-white text-lg leading-tight">{job.title}</span>
-                      <StatusBadge status={job.status} />
-                    </div>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-y-1.5 gap-x-4 text-sm text-[#6b6b6b]">
-                      <div className="flex items-center gap-1.5">
-                        <Briefcase size={13} className="shrink-0" />
-                        <span className="truncate">{job.employer?.name || '—'}</span>
+                  {/* Header */}
+                  <div className="flex items-start justify-between gap-4 mb-4">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap mb-2">
+                        <span className="font-bold text-white text-lg leading-tight">{job.title}</span>
+                        <StatusBadge status={job.status} />
+                        {isPerHour
+                          ? <span className="text-xs px-2 py-0.5 rounded-full bg-violet-500/10 text-violet-400 border border-violet-500/20 font-semibold">⏱ Hourly</span>
+                          : <span className="text-xs px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-semibold">📅 Per Day</span>
+                        }
                       </div>
-                      <div className="flex items-center gap-1.5">
-                        <IndianRupee size={13} className="shrink-0" />
-                        <span>₹{job.wage}/day</span>
-                      </div>
-                      <div className="flex items-center gap-1.5">
-                        <MapPin size={13} className="shrink-0" />
-                        <span className="truncate">{job.address}, {job.pincode}</span>
-                      </div>
-                      <div className="flex items-center gap-1.5">
-                        <Calendar size={13} className="shrink-0" />
-                        <span>Start: {formatDate(job.startDate)}</span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Divider */}
-                <div className="border-t border-[#2a2a2a] mb-4" />
-
-                {/* Status-specific action area */}
-                {job.status === 'ACCEPTED' && (
-                  <div className="flex items-center gap-3 p-3.5 bg-violet-500/8 border border-violet-500/20 rounded-xl">
-                    <div className="w-8 h-8 bg-violet-500/15 rounded-lg flex items-center justify-center shrink-0">
-                      <AlertCircle size={15} className="text-violet-400" />
-                    </div>
-                    <div>
-                      <div className="text-sm font-semibold text-violet-300">Waiting to Start</div>
-                      <div className="text-xs text-violet-400/70 mt-0.5">Employer will confirm when work begins</div>
-                    </div>
-                  </div>
-                )}
-
-                {job.status === 'WORKING' && (
-                  <div className="space-y-3">
-                    <div className="flex items-center gap-3 p-3.5 bg-emerald-500/8 border border-emerald-500/20 rounded-xl">
-                      <div className="w-8 h-8 bg-emerald-500/15 rounded-lg flex items-center justify-center shrink-0">
-                        <Briefcase size={15} className="text-emerald-400" />
-                      </div>
-                      <div>
-                        <div className="text-sm font-semibold text-emerald-300">Currently Working</div>
-                        <div className="text-xs text-emerald-400/70 mt-0.5">Mark complete once you finish the work</div>
-                      </div>
-                    </div>
-                    <button
-                      onClick={() => action(job._id, 'complete', 'Work marked as completed!')}
-                      disabled={!!acting}
-                      className="btn-primary w-full justify-center">
-                      {acting === job._id + 'complete' ? <Loader size={14} className="animate-spin" /> : <CheckCircle size={15} />}
-                      Mark Work Completed
-                    </button>
-                  </div>
-                )}
-
-                {job.status === 'PAYMENT_PENDING' && (
-                  <div className="space-y-3">
-                    <div className="flex items-center gap-3 p-3.5 bg-[#ff2400]/8 border border-[#ff2400]/20 rounded-xl">
-                      <div className="w-8 h-8 bg-[#ff2400]/15 rounded-lg flex items-center justify-center shrink-0">
-                        <IndianRupee size={15} className="text-[#ff2400]" />
-                      </div>
-                      <div>
-                        <div className="text-sm font-semibold text-[#ff3a1a]">Payment Pending</div>
-                        <div className="text-xs text-[#ff2400]/70 mt-0.5">
-                          {job.paymentConfirmedByEmployer
-                            ? 'Employer confirmed payment — please confirm receipt below'
-                            : 'Waiting for employer to confirm payment'}
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-y-1.5 gap-x-4 text-sm text-[#6b6b6b]">
+                        <div className="flex items-center gap-1.5"><Briefcase size={13} className="shrink-0" /><span className="truncate">{job.employer?.name || '—'}</span></div>
+                        <div className="flex items-center gap-1.5"><IndianRupee size={13} className="shrink-0" /><span className="text-white font-semibold">{wageLabel}</span></div>
+                        <div className="flex items-center gap-1.5"><MapPin size={13} className="shrink-0" /><span className="truncate">{job.address}{job.district ? `, ${job.district}` : ''}</span></div>
+                        <div className="flex items-center gap-1.5"><Calendar size={13} className="shrink-0" />
+                          {isPerHour
+                            ? <span>{formatDate(job.startDate)} · Arrive: {job.arrivalTime || '—'}</span>
+                            : <span>{formatDate(job.startDate)} · {job.numberOfDays} day{job.numberOfDays > 1 ? 's' : ''} · Report: {job.reportTime || '—'}</span>
+                          }
                         </div>
                       </div>
                     </div>
-                    {job.paymentConfirmedByEmployer ? (
-                      <button
-                        onClick={() => action(job._id, 'confirm-payment-received', 'Payment confirmed! Job completed!')}
-                        disabled={!!acting}
-                        className="btn-primary w-full justify-center"
-                        style={{ background: '#059669' }}>
-                        {acting === job._id + 'confirm-payment-received' ? <Loader size={14} className="animate-spin" /> : <CheckCircle size={15} />}
-                        Confirm Payment Received
-                      </button>
-                    ) : (
-                      <div className="text-xs text-center text-[#4a4a4a] py-1">Employer has been notified</div>
-                    )}
                   </div>
-                )}
+
+                  <div className="border-t border-[#2a2a2a] mb-4" />
+
+                  {/* ═══════════════════════════════════════
+                      PER DAY — status-specific sections
+                  ═══════════════════════════════════════ */}
+                  {!isPerHour && (
+                    <>
+                      {/* Booking confirmed — show schedule details */}
+                      {job.status === 'BOOKING_CONFIRMED' && (
+                        <div className="space-y-3">
+                          <div className="flex items-center gap-3 p-3.5 bg-blue-500/8 border border-blue-500/20 rounded-xl">
+                            <div className="w-8 h-8 bg-blue-500/15 rounded-lg flex items-center justify-center shrink-0">
+                              <Calendar size={15} className="text-blue-400" />
+                            </div>
+                            <div>
+                              <div className="text-sm font-semibold text-blue-300">Booking Confirmed!</div>
+                              <div className="text-xs text-blue-400/70 mt-0.5">
+                                Report on {formatDate(job.startDate)} by {job.reportTime || '8:00 AM'}
+                                {job.workingDays?.length ? ` · Working days: ${job.workingDays.join(', ')}` : ''}
+                              </div>
+                            </div>
+                          </div>
+                          <button onClick={() => action(job._id, 'arrived', 'Arrival marked! Employer has been notified.')}
+                            disabled={!!acting} className="btn-primary w-full justify-center">
+                            {acting === job._id + 'arrived' ? <Loader size={14} className="animate-spin" /> : <CheckCircle size={15} />}
+                            Mark I've Arrived
+                          </button>
+                        </div>
+                      )}
+
+                      {/* Arrived — waiting for employer confirm */}
+                      {job.status === 'ARRIVED' && (
+                        <div className="flex items-center gap-3 p-3.5 bg-violet-500/8 border border-violet-500/20 rounded-xl">
+                          <div className="w-8 h-8 bg-violet-500/15 rounded-lg flex items-center justify-center shrink-0">
+                            <AlertCircle size={15} className="text-violet-400" />
+                          </div>
+                          <div>
+                            <div className="text-sm font-semibold text-violet-300">Arrival Marked ✓</div>
+                            <div className="text-xs text-violet-400/70 mt-0.5">
+                              Waiting for employer to confirm. Auto-confirms in 30 minutes.
+                            </div>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Work in progress — per day daily log */}
+                      {job.status === 'WORK_IN_PROGRESS' && (
+                        <div className="space-y-3">
+                          {/* Day progress dots */}
+                          {job.workLog?.length > 0 && (
+                            <div className="p-3 rounded-xl bg-[#0e0e0e] border border-[#1e1e1e]">
+                              <div className="text-xs text-[#555] font-semibold mb-2 uppercase tracking-wider">
+                                Daily Progress — {job.totalDaysLogged || 0} of {job.workLog.length} days paid
+                              </div>
+                              <div className="flex flex-wrap gap-1.5 mb-2">
+                                {job.workLog.map((log, i) => (
+                                  <span key={i} className={`w-7 h-7 rounded-lg flex items-center justify-center text-xs font-bold
+                                    ${log.dayStatus === 'paid'        ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/20' :
+                                      log.dayStatus === 'completed'   ? 'bg-[#ff2400]/15 text-[#ff2400] border border-[#ff2400]/20' :
+                                      log.dayStatus === 'in_progress' ? 'bg-violet-500/15 text-violet-400 border border-violet-500/20' :
+                                      log.dayStatus === 'absent'      ? 'bg-red-500/15 text-red-400 border border-red-500/20' :
+                                      'bg-[#1a1a1a] text-[#333] border border-[#222]'}`}>
+                                    {i + 1}
+                                  </span>
+                                ))}
+                              </div>
+                              <div className="flex gap-3 text-xs text-[#555]">
+                                <span className="flex items-center gap-1"><span className="w-2 h-2 rounded bg-emerald-500/40" />Paid</span>
+                                <span className="flex items-center gap-1"><span className="w-2 h-2 rounded bg-[#ff2400]/40" />Today</span>
+                                <span className="flex items-center gap-1"><span className="w-2 h-2 rounded bg-[#222]" />Pending</span>
+                              </div>
+                            </div>
+                          )}
+
+                          <div className="flex items-center gap-3 p-3.5 bg-emerald-500/8 border border-emerald-500/20 rounded-xl">
+                            <div className="w-8 h-8 bg-emerald-500/15 rounded-lg flex items-center justify-center shrink-0">
+                              <Briefcase size={15} className="text-emerald-400" />
+                            </div>
+                            <div>
+                              <div className="text-sm font-semibold text-emerald-300">Work In Progress</div>
+                              <div className="text-xs text-emerald-400/70 mt-0.5">
+                                Total earned so far: ₹{job.totalAmountPaid?.toLocaleString('en-IN') || 0}
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Confirm daily pay buttons — for each day where pay is released but not confirmed */}
+                          {job.workLog?.filter(l => l.paymentReleased && !l.paymentConfirmed).map((log, i) => (
+                            <button key={log._id}
+                              onClick={() => action(job._id, `day-pay/${log._id}/confirm`, `Day payment confirmed! ₹${log.payAmount} received.`)}
+                              disabled={!!acting}
+                              className="btn-primary w-full justify-center"
+                              style={{ background: '#059669' }}>
+                              {acting === job._id + `day-pay/${log._id}/confirm`
+                                ? <Loader size={14} className="animate-spin" />
+                                : <CheckCircle size={15} />}
+                              Confirm ₹{log.payAmount} Received — {new Date(log.date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}
+                            </button>
+                          ))}
+
+                          {/* Next day — show Mark Arrived again */}
+                          {job.workLog?.some(l => l.dayStatus === 'paid') && (
+                            <button onClick={() => action(job._id, 'arrived', 'Arrival marked for today!')}
+                              disabled={!!acting} className="btn-secondary w-full justify-center">
+                              {acting === job._id + 'arrived' ? <Loader size={14} className="animate-spin" /> : <MapPin size={15} />}
+                              Mark Arrived — Next Day
+                            </button>
+                          )}
+                        </div>
+                      )}
+
+                      {/* Work done — all days logged, waiting for remaining payment confirms */}
+                      {job.status === 'WORK_DONE' && (
+                        <div className="space-y-3">
+                          <div className="flex items-center gap-3 p-3.5 bg-amber-500/8 border border-amber-500/20 rounded-xl">
+                            <div className="w-8 h-8 bg-amber-500/15 rounded-lg flex items-center justify-center shrink-0">
+                              <CheckCircle size={15} className="text-amber-400" />
+                            </div>
+                            <div>
+                              <div className="text-sm font-semibold text-amber-300">All Days Complete!</div>
+                              <div className="text-xs text-amber-400/70 mt-0.5">
+                                Total: ₹{job.totalAmountPaid?.toLocaleString('en-IN') || 0} received so far
+                              </div>
+                            </div>
+                          </div>
+                          {job.workLog?.filter(l => l.paymentReleased && !l.paymentConfirmed).map(log => (
+                            <button key={log._id}
+                              onClick={() => action(job._id, `day-pay/${log._id}/confirm`, `₹${log.payAmount} confirmed!`)}
+                              disabled={!!acting}
+                              className="btn-primary w-full justify-center"
+                              style={{ background: '#059669' }}>
+                              {acting === job._id + `day-pay/${log._id}/confirm`
+                                ? <Loader size={14} className="animate-spin" />
+                                : <CheckCircle size={15} />}
+                              Confirm ₹{log.payAmount} Received — {new Date(log.date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </>
+                  )}
+
+                  {/* ═══════════════════════════════════════
+                      PER HOUR — status-specific sections
+                  ═══════════════════════════════════════ */}
+                  {isPerHour && (
+                    <>
+                      {/* Booking confirmed — On the Way + Start Work */}
+                      {job.status === 'BOOKING_CONFIRMED' && (
+                        <div className="space-y-3">
+                          <div className="flex items-center gap-3 p-3.5 bg-blue-500/8 border border-blue-500/20 rounded-xl">
+                            <div className="w-8 h-8 bg-blue-500/15 rounded-lg flex items-center justify-center shrink-0">
+                              <Clock size={15} className="text-blue-400" />
+                            </div>
+                            <div>
+                              <div className="text-sm font-semibold text-blue-300">Booking Confirmed!</div>
+                              <div className="text-xs text-blue-400/70 mt-0.5">
+                                Arrive by {job.arrivalTime || '—'} · Est. {job.estimatedHours} hr{job.estimatedHours !== 1 ? 's' : ''}
+                                {job.flexibility === 'flexible' ? ' (±1 hr flexible)' : ' (exact time)'}
+                              </div>
+                            </div>
+                          </div>
+                          <div className="grid grid-cols-2 gap-2">
+                            <button onClick={() => action(job._id, 'on-the-way', 'Employer notified you are on the way!')}
+                              disabled={!!acting} className="btn-secondary justify-center text-xs py-2">
+                              {acting === job._id + 'on-the-way' ? <Loader size={13} className="animate-spin" /> : <MapPin size={13} />}
+                              On My Way
+                            </button>
+                            <button onClick={() => action(job._id, 'start-work', 'Work started! Clock is running.')}
+                              disabled={!!acting} className="btn-primary justify-center text-xs py-2">
+                              {acting === job._id + 'start-work' ? <Loader size={13} className="animate-spin" /> : <CheckCircle size={13} />}
+                              Start Work
+                            </button>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Arrived — Start Work */}
+                      {job.status === 'ARRIVED' && (
+                        <div className="space-y-3">
+                          <div className="flex items-center gap-3 p-3.5 bg-violet-500/8 border border-violet-500/20 rounded-xl">
+                            <div className="text-sm font-semibold text-violet-300">Arrived at site</div>
+                          </div>
+                          <button onClick={() => action(job._id, 'start-work', 'Work started! Clock is running.')}
+                            disabled={!!acting} className="btn-primary w-full justify-center">
+                            {acting === job._id + 'start-work' ? <Loader size={14} className="animate-spin" /> : <CheckCircle size={15} />}
+                            Start Work — Clock In
+                          </button>
+                        </div>
+                      )}
+
+                      {/* Work in progress — Complete Work */}
+                      {job.status === 'WORK_IN_PROGRESS' && (
+                        <div className="space-y-3">
+                          {job.timeLog?.startedAt && (
+                            <div className="p-3 rounded-xl bg-[#0e0e0e] border border-[#1e1e1e]">
+                              <div className="text-xs text-[#555] font-semibold uppercase tracking-wider mb-1">Clock Running</div>
+                              <div className="text-sm text-white">
+                                Started: {new Date(job.timeLog.startedAt).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}
+                              </div>
+                              <div className="text-xs text-[#6b6b6b] mt-0.5">
+                                Rate: ₹{job.wage}/hr — confirm completion when done
+                              </div>
+                            </div>
+                          )}
+                          <div className="flex items-center gap-3 p-3.5 bg-emerald-500/8 border border-emerald-500/20 rounded-xl">
+                            <div className="w-8 h-8 bg-emerald-500/15 rounded-lg flex items-center justify-center shrink-0">
+                              <Briefcase size={15} className="text-emerald-400" />
+                            </div>
+                            <div>
+                              <div className="text-sm font-semibold text-emerald-300">Currently Working</div>
+                              <div className="text-xs text-emerald-400/70 mt-0.5">Mark complete once you finish</div>
+                            </div>
+                          </div>
+                          <button onClick={() => action(job._id, 'complete-work', 'Work marked complete! Waiting for employer approval.')}
+                            disabled={!!acting} className="btn-primary w-full justify-center">
+                            {acting === job._id + 'complete-work' ? <Loader size={14} className="animate-spin" /> : <CheckCircle size={15} />}
+                            Mark Work Complete — Clock Out
+                          </button>
+                        </div>
+                      )}
+
+                      {/* Work done — waiting for employer approval */}
+                      {job.status === 'WORK_DONE' && (
+                        <div className="space-y-3">
+                          {job.timeLog?.startedAt && job.timeLog?.completedAt && (
+                            <div className="p-3 rounded-xl bg-[#0e0e0e] border border-[#1e1e1e]">
+                              <div className="text-xs text-[#555] font-semibold uppercase tracking-wider mb-2">Work Summary</div>
+                              <div className="grid grid-cols-2 gap-2 text-sm">
+                                <div><span className="text-[#6b6b6b]">Started:</span> <span className="text-white">{new Date(job.timeLog.startedAt).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}</span></div>
+                                <div><span className="text-[#6b6b6b]">Ended:</span> <span className="text-white">{new Date(job.timeLog.completedAt).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}</span></div>
+                                <div><span className="text-[#6b6b6b]">Hours:</span> <span className="text-white">{parseFloat(((new Date(job.timeLog.completedAt) - new Date(job.timeLog.startedAt)) / 3600000).toFixed(2))} hrs</span></div>
+                                <div><span className="text-[#6b6b6b]">Est. Pay:</span> <span className="text-[#ff2400] font-bold">₹{(parseFloat(((new Date(job.timeLog.completedAt) - new Date(job.timeLog.startedAt)) / 3600000).toFixed(2)) * job.wage).toFixed(0)}</span></div>
+                              </div>
+                            </div>
+                          )}
+                          <div className="flex items-center gap-3 p-3.5 bg-amber-500/8 border border-amber-500/20 rounded-xl">
+                            <div className="w-8 h-8 bg-amber-500/15 rounded-lg flex items-center justify-center shrink-0">
+                              <AlertCircle size={15} className="text-amber-400" />
+                            </div>
+                            <div>
+                              <div className="text-sm font-semibold text-amber-300">Waiting for Employer</div>
+                              <div className="text-xs text-amber-400/70 mt-0.5">Employer is reviewing hours and releasing payment</div>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Payment pending — confirm receipt */}
+                      {job.status === 'PAYMENT_PENDING' && (
+                        <div className="space-y-3">
+                          {job.timeLog?.totalAmount > 0 && (
+                            <div className="p-3 rounded-xl bg-[#0e0e0e] border border-[#1e1e1e]">
+                              <div className="text-xs text-[#555] font-semibold uppercase tracking-wider mb-1.5">Payment Details</div>
+                              <div className="text-lg font-extrabold text-[#ff2400]">₹{job.timeLog.totalAmount}</div>
+                              <div className="text-xs text-[#6b6b6b] mt-0.5">
+                                {job.timeLog.approvedHours} hrs × ₹{job.wage}/hr · via {job.paymentMode?.toUpperCase()}
+                              </div>
+                            </div>
+                          )}
+                          <div className="flex items-center gap-3 p-3.5 bg-[#ff2400]/8 border border-[#ff2400]/20 rounded-xl">
+                            <IndianRupee size={15} className="text-[#ff2400] shrink-0" />
+                            <div>
+                              <div className="text-sm font-semibold text-[#ff3a1a]">Payment Released</div>
+                              <div className="text-xs text-[#ff2400]/70 mt-0.5">Confirm you have received the payment</div>
+                            </div>
+                          </div>
+                          <button onClick={() => action(job._id, 'confirm-hourly-pay', 'Payment confirmed! Job completed! 🎉')}
+                            disabled={!!acting} className="btn-primary w-full justify-center" style={{ background: '#059669' }}>
+                            {acting === job._id + 'confirm-hourly-pay' ? <Loader size={14} className="animate-spin" /> : <CheckCircle size={15} />}
+                            Confirm Payment Received
+                          </button>
+                        </div>
+                      )}
+                    </>
+                  )}
+
+                </div>
               </div>
-            </div>
-          ))}
+            )
+          })}
         </div>
       )}
     </div>

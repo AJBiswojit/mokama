@@ -16,6 +16,7 @@ import AdminLogin from './pages/auth/AdminLogin'
 // Dashboards
 import WorkerDashboard from './pages/dashboard/WorkerDashboard'
 import EmployerDashboard from './pages/dashboard/EmployerDashboard'
+import CreateJob from './pages/dashboard/CreateJob'
 import AdminDashboard from './pages/dashboard/AdminDashboard'
 
 function ProtectedRoute({ children, role }) {
@@ -52,6 +53,7 @@ export default function App() {
           <Route path="/employer/dashboard/*" element={
             <ProtectedRoute role="employer"><EmployerDashboard /></ProtectedRoute>
           } />
+          <Route path="/employer/dashboard/create-job" element={<CreateJob />} />
           <Route path="/admin/dashboard/*" element={
             <ProtectedRoute role="admin"><AdminDashboard /></ProtectedRoute>
           } />
