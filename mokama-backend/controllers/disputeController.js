@@ -16,7 +16,26 @@ const Job      = require('../models/Job');
 const Worker   = require('../models/Worker');
 const Employer = require('../models/Employer');
 const OffenceLog = require('../models/OffenceLog');
-const { JOB_STATUS, DISPUTE_STATUS, PAYMENT_STATUS } = require('../models/Job');
+const { JOB_STATUS } = require('../models/Job');
+
+const DISPUTE_STATUS = {
+  NONE:         'NONE',
+  RAISED:       'RAISED',
+  UNDER_REVIEW: 'UNDER_REVIEW',
+  ESCALATED:    'ESCALATED',
+  RESOLVED:     'RESOLVED',
+  DISMISSED:    'DISMISSED',
+};
+
+const PAYMENT_STATUS = {
+  NONE:            'NONE',
+  PENDING_RELEASE: 'PENDING_RELEASE',
+  ON_HOLD:         'ON_HOLD',
+  RELEASED:        'RELEASED',
+  PARTIALLY_PAID:  'PARTIALLY_PAID',
+  CONFIRMED:       'CONFIRMED',
+  AUTO_CONFIRMED:  'AUTO_CONFIRMED',
+};
 const { updateHonourScore }   = require('../utils/honour');
 const { applyPenalty }        = require('../utils/penaltyEngine');
 const { logAdminAction }      = require('../utils/adminLog');
