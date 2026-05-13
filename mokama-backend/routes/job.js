@@ -19,6 +19,7 @@ const {
   getEmployerJobs, searchWorkers,
 } = require('../controllers/jobController');
 
+// const { getRestrictionStatus } = require('../middlewares/checkRestrictions')
 const { protect, requireRole } = require('../middlewares/auth');
 const checkApproval            = require('../middlewares/checkApproval');
 
@@ -57,5 +58,6 @@ router.get('/employer',         protect, requireRole('employer'), getEmployerJob
 router.get('/worker',           protect, requireRole('worker'),   getWorkerJobs);
 router.get('/worker/requests',  protect, requireRole('worker'),   getWorkerRequests);
 router.get('/search-workers',   protect, requireRole('employer'), checkApproval, searchWorkers);
+// router.get('/restrictions/status', protect, getRestrictionStatus)
 
 module.exports = router;

@@ -1,13 +1,14 @@
 import { Routes, Route, Link } from 'react-router-dom'
 import { useState, useEffect, useCallback } from 'react'
 import { api } from '../../api/AuthContext'
+import AdminDisputePanel from './AdminDisputePanel'
 import DashboardLayout, { HonourBadge, StatusBadge } from '../../components/DashboardLayout'
 import Pagination from '../../components/Pagination'
 import toast from 'react-hot-toast'
 import {
   LayoutDashboard, Users, Briefcase, AlertCircle, Shield,
   TrendingDown, TrendingUp, RefreshCw, Search, XCircle, CheckCircle,
-  Loader, Clock, UserCheck, Ban, ChevronRight, Mail, Trash2, RotateCcw, Activity, EyeOff, Eye
+  Loader, Clock, UserCheck, Ban, ChevronRight, Mail, Trash2, Gavel, RotateCcw, Activity, EyeOff, Eye
 } from 'lucide-react'
 import { formatDate } from '../../utils/honour'
 
@@ -17,6 +18,7 @@ const NAV = [
   { href: '/admin/dashboard/workers',   label: 'Workers',       icon: <Users size={16} /> },
   { href: '/admin/dashboard/employers', label: 'Employers',     icon: <Briefcase size={16} /> },
   { href: '/admin/dashboard/jobs',      label: 'Jobs',          icon: <AlertCircle size={16} /> },
+  { href: '/admin/dashboard/disputes', label: 'Disputes',       icon: <Gavel size={16} /> },
   { href: '/admin/dashboard/deleted',   label: 'Deleted Users', icon: <Trash2 size={16} /> },
   { href: '/admin/dashboard/activity',  label: 'Activity Log',  icon: <Shield size={16} /> },
 ]
@@ -867,6 +869,7 @@ export default function AdminDashboard() {
         <Route path="workers"    element={<UserPanel key="workers"   userType="worker" />} />
         <Route path="employers"  element={<UserPanel key="employers" userType="employer" />} />
         <Route path="jobs"       element={<JobsPanel />} />
+        <Route path="disputes" element={<AdminDisputePanel />} />
         <Route path="deleted"    element={<DeletedPanel />} />
         <Route path="activity"   element={<ActivityLogPanel />} />
       </Routes>

@@ -7,12 +7,17 @@ import toast from 'react-hot-toast'
 import {
   LayoutDashboard, PlusCircle, Users, Briefcase, Clock,
   User, Bell, CheckCircle, MapPin, IndianRupee, Calendar,
-  Search, Star, RefreshCw, Loader, ChevronRight, AlertCircle, Lock
+  Search, Star, RefreshCw, Loader, ChevronRight, AlertCircle, Shield
 } from 'lucide-react'
 import { formatDate, timeAgo } from '../../utils/honour'
 import StatusBanner from '../../components/StatusBanner'
 import ProfileCompleteness from '../../components/ProfileCompleteness'
 import useSocket from '../../socket/useSocket'
+import CountdownTimer     from '../../components/CountdownTimer'
+import PendingActionBanner from '../../components/PendingActionBanner'
+import JobTimeline        from '../../components/JobTimeline'
+import RestrictionBanner  from '../../components/RestrictionBanner'
+import DisputeCenter      from './DisputeCenter'
 import CreateJob from './CreateJob'
 
 const NAV = [
@@ -22,6 +27,7 @@ const NAV = [
   { href: '/employer/dashboard/active-jobs', label: 'Active Jobs', icon: <Briefcase size={16} /> },
   { href: '/employer/dashboard/history', label: 'Job History', icon: <Clock size={16} /> },
   { href: '/employer/dashboard/profile', label: 'Profile', icon: <User size={16} /> },
+  { href: '/employer/dashboard/disputes',      label: 'Disputes',      icon: <Shield size={16} /> },
   { href: '/employer/dashboard/notifications', label: 'Notifications', icon: <Bell size={16} /> },
 ]
 
@@ -227,15 +233,15 @@ function FindWorkers() {
 
 /* ─── Active Jobs ─── */
 function ActiveJobs() {
-  const [jobs, setJobs] = useState([])
-  const [loading, setLoading] = useState(true)
+  const [jobs,   setJobs]   = useState([])
+  const [loading,setLoading]= useState(true)
   const [acting, setActing] = useState(null)
 
   const load = useCallback(async () => {
     try {
       const res = await api.get('/jobs/employer')
       const active = (res.data.jobs || []).filter(j =>
-        !['COMPLETED', 'CANCELLED', 'EXPIRED'].includes(j.status)
+        !['COMPLETED','CANCELLED','EXPIRED'].includes(j.status)
       )
       setJobs(active)
     } catch { toast.error('Failed to load') }
@@ -245,32 +251,23 @@ function ActiveJobs() {
   useEffect(() => { load() }, [load])
 
   useSocket({
-    requestAccepted:  (d) => { toast.success(`✅ ${d.workerName} accepted: ${d.jobTitle}`);  load() },
-    requestRejected:  (d) => { toast.error(`❌ ${d.workerName} rejected: ${d.jobTitle}`);    load() },
-    workerArrived:    (d) => { toast.success(`📍 Worker arrived for: ${d.jobTitle}`);          load() },
-    dailyPayConfirmed:(d) => {
-      toast.success(`💰 Worker confirmed payment for: ${d.jobTitle}`)
-      if (d.isCompleted) { toast.success('🎉 Job fully completed!'); }
-      load()
-    },
-    hourlyWorkDone: (d) => {
-      toast.success(`🏁 Work done: ${d.actualHours} hrs × ₹${d.wage || ''} = ₹${d.totalAmount}`)
-      load()
-    },
+    requestAccepted:   (d) => { toast.success(`✅ ${d.workerName} accepted: ${d.jobTitle}`);  load() },
+    requestRejected:   (d) => { toast.error(`❌ ${d.workerName} rejected: ${d.jobTitle}`);    load() },
+    workerArrived:     (d) => { toast.success(`📍 Worker arrived: ${d.jobTitle}`);             load() },
+    dailyPayConfirmed: (d) => { toast.success(`💰 Payment confirmed: ${d.jobTitle}`); if (d.isCompleted) toast.success('🎉 Job completed!'); load() },
+    hourlyWorkDone:    (d) => { toast.success(`🏁 Work done: ₹${d.totalAmount}`);              load() },
   })
 
   const action = async (jobId, endpoint, msg, body = null) => {
     setActing(jobId + endpoint)
     try {
       await api.patch(`/jobs/${jobId}/${endpoint}`, body || {})
-      toast.success(msg)
-      load()
+      toast.success(msg); load()
     } catch (err) { toast.error(err.response?.data?.message || 'Action failed') }
     finally { setActing(null) }
   }
 
-  const wageLabel = (job) =>
-    job.jobType === 'per_hour' ? `₹${job.wage}/hr` : `₹${job.wage}/day`
+  const wageLabel = (job) => job.jobType === 'per_hour' ? `₹${job.wage}/hr` : `₹${job.wage}/day`
 
   if (loading) return <Spinner />
 
@@ -280,27 +277,30 @@ function ActiveJobs() {
         <h1 className="text-xl font-extrabold text-white">Active Jobs</h1>
         <button onClick={load} className="btn-ghost text-xs"><RefreshCw size={14} /></button>
       </div>
+
+      <RestrictionBanner role="employer" />
+
       {jobs.length === 0 ? (
         <EmptyState icon={<Briefcase size={32} />} title="No active jobs" desc="Post a job to get started" />
       ) : (
         <div className="space-y-4">
           {jobs.map(job => (
             <div key={job._id} className="card hover:shadow-card-hover transition-all">
+
               {/* Header */}
-              <div className="flex items-start justify-between gap-4 mb-4">
+              <div className="flex items-start justify-between gap-4 mb-3">
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 flex-wrap mb-1">
                     <span className="font-bold text-white">{job.title}</span>
                     <StatusBadge status={job.status} />
                     {job.jobType === 'per_hour' && (
-                      <span className="text-xs px-2 py-0.5 rounded-full bg-violet-500/10 text-violet-400 border border-violet-500/20 font-semibold">
-                        ⏱ Hourly
-                      </span>
+                      <span className="text-xs px-2 py-0.5 rounded-full bg-violet-500/10 text-violet-400 border border-violet-500/20 font-semibold">⏱ Hourly</span>
                     )}
                     {job.urgency === 'urgent' && (
-                      <span className="text-xs px-2 py-0.5 rounded-full bg-[#ff2400]/10 text-[#ff2400] border border-[#ff2400]/20 font-semibold">
-                        🚨 Urgent
-                      </span>
+                      <span className="text-xs px-2 py-0.5 rounded-full bg-[#ff2400]/10 text-[#ff2400] border border-[#ff2400]/20 font-semibold">🚨 Urgent</span>
+                    )}
+                    {job.attendanceStatus === 'SUSPICIOUS' && (
+                      <span className="text-xs px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-400 border border-amber-500/20 font-semibold">⚠️ Arrival Flagged</span>
                     )}
                   </div>
                   <div className="text-sm text-[#6b6b6b] space-y-1">
@@ -321,11 +321,16 @@ function ActiveJobs() {
                 </div>
               </div>
 
-              {/* Per day — work log progress */}
+              {/* Pending action banner */}
+              {job.pendingAction?.waitingFor && (
+                <PendingActionBanner pendingAction={job.pendingAction} role="employer" jobId={job._id} className="mb-3" />
+              )}
+
+              {/* Per day work log dots */}
               {job.jobType === 'per_day' && job.workLog?.length > 0 && (
-                <div className="mb-4 p-3 rounded-xl bg-[#0e0e0e] border border-[#1e1e1e]">
+                <div className="mb-3 p-3 rounded-xl bg-[#0e0e0e] border border-[#1e1e1e]">
                   <div className="text-xs text-[#555] font-semibold mb-2 uppercase tracking-wider">
-                    Daily Progress — {job.totalDaysLogged || 0} of {job.workLog.length} days paid
+                    Progress — {job.totalDaysLogged || 0}/{job.workLog.length} days paid
                   </div>
                   <div className="flex flex-wrap gap-1.5">
                     {job.workLog.map((log, i) => (
@@ -333,6 +338,7 @@ function ActiveJobs() {
                         ${log.dayStatus === 'paid'        ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/20' :
                           log.dayStatus === 'completed'   ? 'bg-[#ff2400]/15 text-[#ff2400] border border-[#ff2400]/20' :
                           log.dayStatus === 'in_progress' ? 'bg-violet-500/15 text-violet-400 border border-violet-500/20' :
+                          log.dayStatus === 'suspicious'  ? 'bg-amber-500/15 text-amber-400 border border-amber-500/20' :
                           log.dayStatus === 'absent'      ? 'bg-red-500/15 text-red-400 border border-red-500/20' :
                           'bg-[#1a1a1a] text-[#333] border border-[#222]'}`}>
                         {i + 1}
@@ -342,15 +348,15 @@ function ActiveJobs() {
                 </div>
               )}
 
-              {/* Per hour — time log */}
+              {/* Per hour time log */}
               {job.jobType === 'per_hour' && job.timeLog?.startedAt && (
-                <div className="mb-4 p-3 rounded-xl bg-[#0e0e0e] border border-[#1e1e1e]">
+                <div className="mb-3 p-3 rounded-xl bg-[#0e0e0e] border border-[#1e1e1e]">
                   <div className="text-xs text-[#555] font-semibold uppercase tracking-wider mb-1.5">Time Log</div>
                   <div className="grid grid-cols-2 gap-2 text-xs text-[#6b6b6b]">
-                    {job.timeLog.startedAt && <span>Started: {new Date(job.timeLog.startedAt).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}</span>}
-                    {job.timeLog.completedAt && <span>Completed: {new Date(job.timeLog.completedAt).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}</span>}
+                    {job.timeLog.startedAt && <span>Started: {new Date(job.timeLog.startedAt).toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'})}</span>}
+                    {job.timeLog.completedAt && <span>Completed: {new Date(job.timeLog.completedAt).toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'})}</span>}
                     {job.timeLog.approvedHours > 0 && <span className="text-white font-semibold">Approved: {job.timeLog.approvedHours} hrs</span>}
-                    {job.timeLog.totalAmount > 0 && <span className="text-[#ff2400] font-semibold">Total: ₹{job.timeLog.totalAmount}</span>}
+                    {job.timeLog.totalAmount  > 0 && <span className="text-[#ff2400] font-semibold">Total: ₹{job.timeLog.totalAmount}</span>}
                   </div>
                 </div>
               )}
@@ -358,73 +364,71 @@ function ActiveJobs() {
               {/* Action buttons */}
               <div className="flex flex-wrap gap-2 pt-3 border-t border-[#2a2a2a]">
 
-                {/* ACCEPTED → Confirm Booking */}
                 {job.status === 'ACCEPTED' && (
                   <button onClick={() => action(job._id, 'confirm-booking', 'Booking confirmed!')}
                     disabled={!!acting} className="btn-primary text-xs py-2">
-                    {acting === job._id + 'confirm-booking' ? <Loader size={13} className="animate-spin" /> : <CheckCircle size={13} />}
+                    {acting === job._id+'confirm-booking' ? <Loader size={13} className="animate-spin" /> : <CheckCircle size={13} />}
                     Confirm Booking
                   </button>
                 )}
 
-                {/* BOOKING_CONFIRMED → waiting for worker to arrive */}
                 {job.status === 'BOOKING_CONFIRMED' && (
                   <div className="text-xs text-[#6b6b6b] flex items-center gap-1.5 px-3 py-2 bg-[#1a1a1a] rounded-xl border border-[#222]">
-                    <AlertCircle size={13} /> Waiting for worker to mark arrival
+                    <AlertCircle size={13} /> Waiting for worker to arrive
                   </div>
                 )}
 
-                {/* ARRIVED → Confirm Arrival */}
                 {job.status === 'ARRIVED' && (
                   <button onClick={() => action(job._id, 'confirm-arrival', 'Arrival confirmed! Work in progress.')}
                     disabled={!!acting} className="btn-primary text-xs py-2">
-                    {acting === job._id + 'confirm-arrival' ? <Loader size={13} className="animate-spin" /> : <CheckCircle size={13} />}
+                    {acting === job._id+'confirm-arrival' ? <Loader size={13} className="animate-spin" /> : <CheckCircle size={13} />}
                     Confirm Arrival
-                    <span className="ml-1 text-white/50">(auto in 30 min)</span>
+                    <span className="ml-1 text-white/50 text-[10px]">(auto in 30 min)</span>
                   </button>
                 )}
 
-                {/* WORK_IN_PROGRESS — per_day → Mark Day Complete */}
-                {job.status === 'WORK_IN_PROGRESS' && job.jobType === 'per_day' && (
-                  <button onClick={() => action(job._id, 'day-complete', 'Day logged! Daily pay released to worker.')}
+                {['ACTIVE','WORK_IN_PROGRESS'].includes(job.status) && job.jobType === 'per_day' && (
+                  <button onClick={() => action(job._id, 'day-complete', 'Day logged! Daily pay released.')}
                     disabled={!!acting} className="btn-primary text-xs py-2">
-                    {acting === job._id + 'day-complete' ? <Loader size={13} className="animate-spin" /> : <IndianRupee size={13} />}
+                    {acting === job._id+'day-complete' ? <Loader size={13} className="animate-spin" /> : <IndianRupee size={13} />}
                     Mark Day Complete + Release Pay
                   </button>
                 )}
 
-                {/* WORK_DONE — per_hour → Approve Hours */}
                 {job.status === 'WORK_DONE' && job.jobType === 'per_hour' && (
                   <button
                     onClick={() => {
-                      const hrs = job.timeLog?.approvedHours ||
-                        parseFloat(((new Date(job.timeLog?.completedAt) - new Date(job.timeLog?.startedAt)) / 3600000).toFixed(2))
+                      const hrs = job.timeLog?.approvedHours || parseFloat(((new Date(job.timeLog?.completedAt)-new Date(job.timeLog?.startedAt))/3600000).toFixed(2))
                       const total = (hrs * job.wage).toFixed(2)
                       if (confirm(`Approve ${hrs} hrs × ₹${job.wage}/hr = ₹${total}?
-Click OK to release payment.`)) {
+OK to release payment.`))
                         action(job._id, 'approve-pay', `₹${total} released!`, { approvedHours: hrs })
-                      }
                     }}
                     disabled={!!acting} className="btn-primary text-xs py-2">
-                    {acting === job._id + 'approve-pay' ? <Loader size={13} className="animate-spin" /> : <CheckCircle size={13} />}
+                    {acting === job._id+'approve-pay' ? <Loader size={13} className="animate-spin" /> : <CheckCircle size={13} />}
                     Approve Hours & Release Pay
                   </button>
                 )}
 
-                {/* WORK_DONE — per_day last day → waiting for worker */}
                 {job.status === 'WORK_DONE' && job.jobType === 'per_day' && (
                   <div className="text-xs text-emerald-400 flex items-center gap-1.5 px-3 py-2 bg-emerald-500/8 rounded-xl border border-emerald-500/20">
                     <CheckCircle size={13} /> All days done — waiting for worker payment confirmations
                   </div>
                 )}
 
-                {/* PAYMENT_PENDING → waiting for worker */}
                 {job.status === 'PAYMENT_PENDING' && (
                   <div className="text-xs text-[#6b6b6b] flex items-center gap-1.5 px-3 py-2 bg-[#1a1a1a] rounded-xl border border-[#222]">
-                    <AlertCircle size={13} /> Waiting for worker to confirm payment receipt
+                    <AlertCircle size={13} /> Waiting for worker to confirm payment
                   </div>
                 )}
               </div>
+
+              {/* Timeline */}
+              {job.timeline?.length > 0 && (
+                <div className="mt-4">
+                  <JobTimeline timeline={job.timeline} />
+                </div>
+              )}
             </div>
           ))}
         </div>
@@ -472,50 +476,6 @@ function JobHistory() {
   )
 }
 
-/* ─── Honour Ring SVG ─── */
-function HonourRing({ score = 50, size = 96 }) {
-  const r = 38, cx = 48, cy = 48
-  const circ = 2 * Math.PI * r
-  const offset = circ - (score / 100) * circ
-  const colour = score >= 85 ? '#4ade80' : score >= 70 ? '#a3e635' : score >= 50 ? '#fb923c' : '#f87171'
-  return (
-    <svg width={size} height={size} viewBox="0 0 96 96">
-      <circle cx={cx} cy={cy} r={r} fill="none" stroke="#1e1e1e" strokeWidth="7" />
-      <circle cx={cx} cy={cy} r={r} fill="none" stroke={colour} strokeWidth="7"
-        strokeLinecap="round" strokeDasharray={circ} strokeDashoffset={offset}
-        transform="rotate(-90 48 48)" style={{ transition: 'stroke-dashoffset 1s ease' }} />
-      <text x="48" y="44" textAnchor="middle" fontSize="18" fontWeight="800" fill={colour}>{score}</text>
-      <text x="48" y="58" textAnchor="middle" fontSize="9" fill="#4a4a4a">/100</text>
-    </svg>
-  )
-}
-
-/* ─── Info Row ─── */
-function InfoRow({ label, value, icon: Icon }) {
-  return (
-    <div className="flex items-start gap-3 py-2.5 border-b border-[#1a1a1a] last:border-0">
-      {Icon && <Icon size={13} className="text-[#ff2400] mt-0.5 shrink-0" />}
-      <div className="flex-1 flex justify-between gap-3 min-w-0">
-        <span className="text-xs text-[#4a4a4a] shrink-0">{label}</span>
-        <span className="text-sm text-white font-medium text-right capitalize truncate">{value || '—'}</span>
-      </div>
-    </div>
-  )
-}
-
-/* ─── Section Block ─── */
-function Section({ title, icon: Icon, children }) {
-  return (
-    <div className="bg-[#0e0e0e] border border-[#1e1e1e] rounded-2xl p-4">
-      <div className="flex items-center gap-2 mb-3 pb-2 border-b border-[#1a1a1a]">
-        <Icon size={13} className="text-[#ff2400]" />
-        <span className="text-xs font-bold text-[#6b6b6b] uppercase tracking-widest">{title}</span>
-      </div>
-      {children}
-    </div>
-  )
-}
-
 /* ─── Profile ─── */
 function EmployerProfile() {
   const { user, updateUser } = useAuth()
@@ -528,14 +488,16 @@ function EmployerProfile() {
     district:            user?.district            || '',
     block:               user?.block               || '',
     pincode:             user?.pincode             || '',
+    // Individual editable
     labourCardNumber:    user?.labourCardNumber     || '',
+    // Organisation editable
     labourLicenseNumber: user?.labourLicenseNumber  || '',
   })
-  const [loading, setLoading]       = useState(false)
-  const [honourLogs, setHonourLogs] = useState([])
+  const [loading, setLoading]         = useState(false)
+  const [honourLogs, setHonourLogs]   = useState([])
   const [logsLoading, setLogsLoading] = useState(true)
 
-  // Geo
+  // Geo state
   const [states, setStates]         = useState([])
   const [districts, setDistricts]   = useState([])
   const [blocks, setBlocks]         = useState([])
@@ -544,36 +506,47 @@ function EmployerProfile() {
   useEffect(() => {
     api.get('/employer/honour-log')
       .then(r => setHonourLogs(r.data.logs || []))
-      .catch(() => {})
+      .catch(() => { })
       .finally(() => setLogsLoading(false))
   }, [])
 
+  // Load states when editing opens
   useEffect(() => {
     if (!editing) return
     setGeoLoading(p => ({ ...p, states: true }))
-    api.get('/geo/states').then(r => setStates(r.data.states || [])).finally(() => setGeoLoading(p => ({ ...p, states: false })))
+    api.get('/geo/states')
+      .then(r => setStates(r.data.states || []))
+      .finally(() => setGeoLoading(p => ({ ...p, states: false })))
   }, [editing])
 
+  // Load districts when state changes
   useEffect(() => {
     if (!form.state) { setDistricts([]); setBlocks([]); return }
     setGeoLoading(p => ({ ...p, districts: true }))
     setDistricts([]); setBlocks([])
-    api.get(`/geo/districts?state=${encodeURIComponent(form.state)}`).then(r => setDistricts(r.data.districts || [])).finally(() => setGeoLoading(p => ({ ...p, districts: false })))
+    api.get(`/geo/districts?state=${encodeURIComponent(form.state)}`)
+      .then(r => setDistricts(r.data.districts || []))
+      .finally(() => setGeoLoading(p => ({ ...p, districts: false })))
   }, [form.state])
 
+  // Load blocks when district changes
   useEffect(() => {
     if (!form.district) { setBlocks([]); return }
     setGeoLoading(p => ({ ...p, blocks: true }))
     setBlocks([])
-    api.get(`/geo/blocks?state=${encodeURIComponent(form.state)}&district=${encodeURIComponent(form.district)}`).then(r => setBlocks(r.data.blocks || [])).finally(() => setGeoLoading(p => ({ ...p, blocks: false })))
+    api.get(`/geo/blocks?state=${encodeURIComponent(form.state)}&district=${encodeURIComponent(form.district)}`)
+      .then(r => setBlocks(r.data.blocks || []))
+      .finally(() => setGeoLoading(p => ({ ...p, blocks: false })))
   }, [form.district])
 
-  const setField = (k, v) => setForm(p => {
-    const next = { ...p, [k]: v }
-    if (k === 'state')    { next.district = ''; next.block = '' }
-    if (k === 'district') { next.block = '' }
-    return next
-  })
+  const setField = (k, v) => {
+    setForm(p => {
+      const next = { ...p, [k]: v }
+      if (k === 'state')    { next.district = ''; next.block = '' }
+      if (k === 'district') { next.block = '' }
+      return next
+    })
+  }
 
   const save = async () => {
     setLoading(true)
@@ -586,280 +559,191 @@ function EmployerProfile() {
     finally { setLoading(false) }
   }
 
-  const fd = (d) => d ? new Date(d).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : '—'
+  const formatDate = (d) => {
+    if (!d) return '—'
+    return new Date(d).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })
+  }
 
-  const honourLabel = (s) => s >= 85 ? 'Excellent' : s >= 70 ? 'Good' : s >= 50 ? 'Average' : 'Poor'
-  const honourColor = (s) => s >= 85 ? 'text-emerald-400' : s >= 70 ? 'text-lime-400' : s >= 50 ? 'text-amber-400' : 'text-red-400'
-
+  // Locked fields differ by type
   const lockedFields = isOrg
-    ? [['Organisation Name', user?.name], ['Established', fd(user?.establishmentDate)], ['GST Number', user?.gstNumber || 'Not provided']]
-    : [['Full Name', user?.name], ["Father's Name", user?.fatherName], ['Gender', user?.gender], ['Date of Birth', fd(user?.dob)]]
+    ? [
+        ['Organisation Name',   user?.name              || '—'],
+        ['Establishment Date',  formatDate(user?.establishmentDate)],
+        ['GST Number',          user?.gstNumber          || 'Not provided'],
+      ]
+    : [
+        ['Full Name',           user?.name              || '—'],
+        ["Father's Name",       user?.fatherName         || '—'],
+        ['Gender',              user?.gender             || '—'],
+        ['Date of Birth',       formatDate(user?.dob)],
+      ]
 
   return (
-    <div className="animate-fade-in space-y-6">
+    <div className="space-y-6 animate-fade-in w-full">
       <div className="flex items-center justify-between">
         <h1 className="text-xl font-extrabold text-white">My Profile</h1>
-        {!editing
-          ? <button className="btn-secondary text-xs" onClick={() => setEditing(true)}>Edit Profile</button>
-          : <div className="flex gap-2">
-              <button className="btn-primary text-xs py-2" onClick={save} disabled={loading}>{loading ? 'Saving…' : 'Save Changes'}</button>
-              <button className="btn-ghost text-xs py-2" onClick={() => setEditing(false)}>Cancel</button>
-            </div>
-        }
+        {!editing && <button className="btn-secondary text-xs" onClick={() => setEditing(true)}>Edit</button>}
       </div>
 
-      {/* ── Two column layout ── */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
+      <div className="card">
+        <div className="flex items-center gap-4 mb-6">
+          <div className="w-16 h-16 bg-[#ff2400]/10 border border-[#ff2400]/20 rounded-2xl flex items-center justify-center text-[#ff2400] text-2xl font-bold">
+            {user?.name?.[0]?.toUpperCase()}
+          </div>
+          <div>
+            <div className="font-bold text-xl text-white">{user?.name}</div>
+            <div className="text-sm text-[#6b6b6b]">+91 {user?.mobile}</div>
+            <div className="text-xs text-[#ff2400] mt-0.5 capitalize">{user?.employerType || 'individual'} employer</div>
+            <HonourBadge score={user?.honourScore} small />
+          </div>
+        </div>
 
-        {/* ── LEFT: Hero panel ── */}
-        <div className="lg:col-span-1 space-y-4">
+        {editing ? (
+          <div className="space-y-3">
 
-          {/* Avatar + honour ring card */}
-          <div className="card text-center py-7 px-4 relative overflow-hidden">
-            {/* Subtle glow behind avatar */}
-            <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-              <div className="w-40 h-40 bg-[#ff2400]/5 rounded-full blur-3xl" />
+            {/* ── Locked identity fields ── */}
+            <div className="p-3 bg-[#1a1a1a] border border-[#2a2a2a] rounded-xl space-y-2.5">
+              <p className="text-xs text-[#4a4a4a] flex items-center gap-1.5">
+                🔒 <span>These fields cannot be changed after registration</span>
+              </p>
+              {lockedFields.map(([k, v]) => (
+                <div key={k} className="flex justify-between text-sm">
+                  <span className="text-[#4a4a4a]">{k}</span>
+                  <span className="text-[#6b6b6b] capitalize">{v}</span>
+                </div>
+              ))}
             </div>
 
-            {/* Avatar */}
-            <div className="relative inline-flex mb-4">
-              <div className="w-20 h-20 bg-gradient-to-br from-[#ff2400]/20 to-[#ff2400]/5 border-2 border-[#ff2400]/30 rounded-2xl flex items-center justify-center text-[#ff2400] text-3xl font-black shadow-glow-sm">
-                {user?.name?.[0]?.toUpperCase()}
+            {/* ── Editable fields ── */}
+            <div>
+              <label className="label">Address</label>
+              <textarea className="input resize-none min-h-[70px]" value={form.address}
+                onChange={e => setField('address', e.target.value)} />
+            </div>
+
+            {/* State */}
+            <div>
+              <label className="label">State</label>
+              <div className="relative">
+                <select className="input bg-[#141414]" value={form.state}
+                  onChange={e => setField('state', e.target.value)} disabled={geoLoading.states}>
+                  <option value="">{geoLoading.states ? 'Loading...' : 'Select state'}</option>
+                  {states.map(s => <option key={s} value={s}>{s}</option>)}
+                </select>
+                {geoLoading.states && <span className="absolute right-3 top-3 text-[#ff2400] text-xs animate-spin">⟳</span>}
               </div>
-              {/* Status dot */}
-              <div className={`absolute -bottom-1 -right-1 w-4 h-4 rounded-full border-2 border-[#111]
-                ${user?.status === 'approved' ? 'bg-emerald-400' : user?.status === 'rejected' ? 'bg-red-400' : 'bg-amber-400'}`} />
             </div>
 
-            <div className="font-extrabold text-white text-lg leading-tight">{user?.name}</div>
-            <div className="text-xs text-[#ff2400] font-semibold mt-0.5 capitalize">{user?.employerType || 'individual'} Employer</div>
-            <div className="text-xs text-[#4a4a4a] mt-0.5">+91 {user?.mobile}</div>
-
-            {/* Status badge */}
-            <div className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold mt-3 border
-              ${user?.status === 'approved'  ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400' :
-                user?.status === 'rejected'  ? 'bg-red-500/10 border-red-500/20 text-red-400' :
-                                               'bg-amber-500/10 border-amber-500/20 text-amber-400'}`}>
-              <span className={`w-1.5 h-1.5 rounded-full ${user?.status === 'approved' ? 'bg-emerald-400' : user?.status === 'rejected' ? 'bg-red-400' : 'bg-amber-400 animate-pulse'}`} />
-              {user?.status === 'approved' ? 'Verified Account' : user?.status === 'rejected' ? 'Account Rejected' : 'Pending Approval'}
-            </div>
-
-            {/* Honour ring */}
-            <div className="flex flex-col items-center mt-6 pt-5 border-t border-[#1e1e1e]">
-              <HonourRing score={user?.honourScore ?? 50} />
-              <div className={`text-sm font-bold mt-2 ${honourColor(user?.honourScore ?? 50)}`}>
-                {honourLabel(user?.honourScore ?? 50)}
+            {/* District + Block */}
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="label">District</label>
+                <select className="input bg-[#141414]" value={form.district}
+                  onChange={e => setField('district', e.target.value)} disabled={!form.state || geoLoading.districts}>
+                  <option value="">{geoLoading.districts ? 'Loading...' : form.state ? 'Select district' : 'Select state first'}</option>
+                  {districts.map(d => <option key={d} value={d}>{d}</option>)}
+                </select>
               </div>
-              <div className="text-xs text-[#4a4a4a] mt-0.5">Honour Score</div>
+              <div>
+                <label className="label">Block</label>
+                <select className="input bg-[#141414]" value={form.block}
+                  onChange={e => setField('block', e.target.value)} disabled={!form.district || geoLoading.blocks}>
+                  <option value="">{geoLoading.blocks ? 'Loading...' : form.district ? 'Select block' : 'Select district first'}</option>
+                  {blocks.map(b => <option key={b} value={b}>{b}</option>)}
+                </select>
+              </div>
+            </div>
+
+            <div>
+              <label className="label">Pincode</label>
+              <input className="input" maxLength={6} value={form.pincode}
+                onChange={e => setField('pincode', e.target.value.replace(/\D/g, ''))} />
+            </div>
+
+            {/* Labour card — individual only */}
+            {!isOrg && (
+              <div>
+                <label className="label">Labour Card Number <span className="text-[#3a3a3a] text-xs">(optional)</span></label>
+                <input className="input" placeholder="Government-issued labour card (if any)"
+                  value={form.labourCardNumber}
+                  onChange={e => setField('labourCardNumber', e.target.value)} />
+              </div>
+            )}
+
+            {/* Labour license — organisation only */}
+            {isOrg && (
+              <div>
+                <label className="label">Labour License Number <span className="text-[#3a3a3a] text-xs">(optional)</span></label>
+                <input className="input" placeholder="Govt issued labour license (if any)"
+                  value={form.labourLicenseNumber}
+                  onChange={e => setField('labourLicenseNumber', e.target.value)} />
+              </div>
+            )}
+
+            <div className="flex gap-2 pt-2">
+              <button className="btn-primary" onClick={save} disabled={loading}>{loading ? 'Saving...' : 'Save'}</button>
+              <button className="btn-ghost" onClick={() => setEditing(false)}>Cancel</button>
             </div>
           </div>
-
-          {/* Quick stats */}
-          <div className="grid grid-cols-2 gap-3">
+        ) : (
+          <div className="space-y-3 text-sm">
             {[
-              { label: 'Jobs Posted',   value: user?.activeJobs    ?? 0, color: 'text-[#ff2400]' },
-              { label: 'Completed',     value: user?.completedJobs ?? 0, color: 'text-emerald-400' },
-            ].map(s => (
-              <div key={s.label} className="card text-center py-4">
-                <div className={`text-2xl font-black ${s.color}`}>{s.value}</div>
-                <div className="text-xs text-[#4a4a4a] mt-0.5">{s.label}</div>
+              ['Type',          isOrg ? 'Organisation' : 'Individual'],
+              ['Category',      user?.employerCategoryName || '—'],
+              ['Subcategory',   user?.employerSubcategory  || '—'],
+              ...(isOrg ? [
+                ['Org Name',          user?.name                  || '—'],
+                ['Establishment Date',formatDate(user?.establishmentDate)],
+                ['GST Number',        user?.gstNumber              || 'Not provided'],
+                ['Labour License',    user?.labourLicenseNumber    || 'Not provided'],
+              ] : [
+                ['Full Name',         user?.name                  || '—'],
+                ["Father's Name",     user?.fatherName             || '—'],
+                ['Gender',            user?.gender                 || '—'],
+                ['Date of Birth',     formatDate(user?.dob)],
+                ['Labour Card',       user?.labourCardNumber       || 'Not provided'],
+              ]),
+              ['Address',       user?.address  || '—'],
+              ['State',         user?.state    || '—'],
+              ['District',      user?.district || '—'],
+              ['Block',         user?.block    || '—'],
+              ['Pincode',       user?.pincode  || '—'],
+              ['Completed Jobs',user?.completedJobs || 0],
+              ['Member Since',  formatDate(user?.createdAt)],
+            ].map(([k, v]) => (
+              <div key={k} className="flex justify-between gap-4 py-2 border-b border-[#2a2a2a] last:border-0">
+                <span className="text-[#6b6b6b]">{k}</span>
+                <span className="text-white font-medium text-right capitalize">{v}</span>
               </div>
             ))}
           </div>
-
-          {/* Member since */}
-          <div className="card py-3 px-4 flex items-center gap-3">
-            <Calendar size={14} className="text-[#ff2400] shrink-0" />
-            <div>
-              <div className="text-xs text-[#4a4a4a]">Member since</div>
-              <div className="text-sm font-semibold text-white">{fd(user?.createdAt)}</div>
-            </div>
-          </div>
-        </div>
-
-        {/* ── RIGHT: Info panels ── */}
-        <div className="lg:col-span-2 space-y-4">
-
-          {editing ? (
-            /* ═══ EDIT MODE ═══ */
-            <>
-              {/* Locked identity */}
-              <Section title="Identity — Cannot be Changed" icon={Lock}>
-                <div className="space-y-1">
-                  {lockedFields.map(([k, v]) => (
-                    <div key={k} className="flex justify-between text-sm py-1.5">
-                      <span className="text-[#3a3a3a] text-xs">{k}</span>
-                      <span className="text-[#5a5a5a] capitalize text-xs">{v || '—'}</span>
-                    </div>
-                  ))}
-                </div>
-              </Section>
-
-              {/* Location fieldset */}
-              <Section title="Location Details" icon={MapPin}>
-                <div className="space-y-3 pt-1">
-                  <div>
-                    <label className="label">Address</label>
-                    <textarea className="input resize-none min-h-[68px]" value={form.address} onChange={e => setField('address', e.target.value)} />
-                  </div>
-                  <div>
-                    <label className="label">State</label>
-                    <div className="relative">
-                      <select className="input bg-[#141414]" value={form.state} onChange={e => setField('state', e.target.value)} disabled={geoLoading.states}>
-                        <option value="">{geoLoading.states ? 'Loading…' : 'Select state'}</option>
-                        {states.map(s => <option key={s} value={s}>{s}</option>)}
-                      </select>
-                      {geoLoading.states && <span className="absolute right-3 top-3 text-[#ff2400] text-xs">⟳</span>}
-                    </div>
-                  </div>
-                  <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <label className="label">District</label>
-                      <select className="input bg-[#141414]" value={form.district} onChange={e => setField('district', e.target.value)} disabled={!form.state || geoLoading.districts}>
-                        <option value="">{geoLoading.districts ? 'Loading…' : form.state ? 'Select district' : 'Select state first'}</option>
-                        {districts.map(d => <option key={d} value={d}>{d}</option>)}
-                      </select>
-                    </div>
-                    <div>
-                      <label className="label">Block</label>
-                      <select className="input bg-[#141414]" value={form.block} onChange={e => setField('block', e.target.value)} disabled={!form.district || geoLoading.blocks}>
-                        <option value="">{geoLoading.blocks ? 'Loading…' : form.district ? 'Select block' : 'Select district first'}</option>
-                        {blocks.map(b => <option key={b} value={b}>{b}</option>)}
-                      </select>
-                    </div>
-                  </div>
-                  <div>
-                    <label className="label">Pincode</label>
-                    <input className="input" maxLength={6} value={form.pincode} onChange={e => setField('pincode', e.target.value.replace(/\D/g, ''))} />
-                  </div>
-                </div>
-              </Section>
-
-              {/* Documents fieldset */}
-              <Section title="Documents" icon={Briefcase}>
-                <div className="pt-1">
-                  {!isOrg ? (
-                    <div>
-                      <label className="label">Labour Card Number <span className="text-[#2a2a2a] normal-case">(optional)</span></label>
-                      <input className="input" placeholder="Govt issued labour card" value={form.labourCardNumber} onChange={e => setField('labourCardNumber', e.target.value)} />
-                    </div>
-                  ) : (
-                    <div>
-                      <label className="label">Labour License Number <span className="text-[#2a2a2a] normal-case">(optional)</span></label>
-                      <input className="input" placeholder="Govt issued labour license" value={form.labourLicenseNumber} onChange={e => setField('labourLicenseNumber', e.target.value)} />
-                    </div>
-                  )}
-                </div>
-              </Section>
-            </>
-          ) : (
-            /* ═══ VIEW MODE ═══ */
-            <>
-              {/* Identity section */}
-              <Section title={isOrg ? 'Organisation Identity' : 'Personal Identity'} icon={User}>
-                {isOrg ? (
-                  <>
-                    <InfoRow icon={Briefcase} label="Org Name"        value={user?.name} />
-                    <InfoRow icon={Calendar}  label="Established"     value={fd(user?.establishmentDate)} />
-                    <InfoRow icon={Star}      label="GST Number"      value={user?.gstNumber || 'Not provided'} />
-                    <InfoRow icon={Briefcase} label="Labour License"  value={user?.labourLicenseNumber || 'Not provided'} />
-                  </>
-                ) : (
-                  <>
-                    <InfoRow icon={User}     label="Full Name"        value={user?.name} />
-                    <InfoRow icon={User}     label="Father's Name"    value={user?.fatherName} />
-                    <InfoRow icon={User}     label="Gender"           value={user?.gender} />
-                    <InfoRow icon={Calendar} label="Date of Birth"    value={fd(user?.dob)} />
-                    <InfoRow icon={Briefcase}label="Labour Card"      value={user?.labourCardNumber || 'Not provided'} />
-                  </>
-                )}
-              </Section>
-
-              {/* Business section */}
-              <Section title="Business Details" icon={Briefcase}>
-                <InfoRow icon={Star}     label="Type"        value={isOrg ? 'Organisation' : 'Individual'} />
-                <InfoRow icon={Star}     label="Category"    value={user?.employerCategoryName} />
-                <InfoRow icon={Star}     label="Subcategory" value={user?.employerSubcategory} />
-              </Section>
-
-              {/* Location section */}
-              <Section title="Location" icon={MapPin}>
-                <InfoRow icon={MapPin} label="Address"  value={user?.address} />
-                <InfoRow icon={MapPin} label="State"    value={user?.state} />
-                <InfoRow icon={MapPin} label="District" value={user?.district} />
-                <InfoRow icon={MapPin} label="Block"    value={user?.block} />
-                <InfoRow icon={MapPin} label="Pincode"  value={user?.pincode} />
-              </Section>
-
-              {/* Contact */}
-              <Section title="Contact" icon={Bell}>
-                <InfoRow icon={Bell}   label="Mobile" value={`+91 ${user?.mobile}`} />
-                <InfoRow icon={Bell}   label="Email"  value={user?.email} />
-              </Section>
-            </>
-          )}
-        </div>
+        )}
       </div>
-
-      {/* ── Honour Score History — Timeline ── */}
+      {/* ── Honour Score History ── */}
       <div className="card">
-        <div className="flex items-center justify-between mb-5">
-          <h2 className="font-bold text-white flex items-center gap-2">
-            <Star size={15} className="text-[#ff2400]" /> Honour Score History
-          </h2>
-          {honourLogs.length > 0 && (
-            <span className="text-xs text-[#4a4a4a]">{honourLogs.length} events</span>
-          )}
-        </div>
-
+        <h2 className="font-bold text-white mb-4 flex items-center gap-2">
+          <Star size={16} className="text-[#ff2400]" /> Honour Score History
+        </h2>
         {logsLoading ? (
-          <div className="flex justify-center py-8">
-            <div className="w-6 h-6 border-2 border-[#ff2400] border-t-transparent rounded-full animate-spin" />
-          </div>
+          <div className="flex justify-center py-6"><div className="w-6 h-6 border-2 border-[#ff2400] border-t-transparent rounded-full animate-spin" /></div>
         ) : honourLogs.length === 0 ? (
-          <div className="text-center py-10">
-            <Star size={28} className="text-[#1e1e1e] mx-auto mb-2" />
-            <p className="text-sm text-[#3a3a3a]">No score changes yet</p>
-            <p className="text-xs text-[#2a2a2a] mt-1">Complete jobs on time to build your score</p>
-          </div>
+          <div className="text-center py-6 text-[#4a4a4a] text-sm">No score changes yet</div>
         ) : (
-          /* Timeline */
-          <div className="relative">
-            {/* Vertical line */}
-            <div className="absolute left-[19px] top-2 bottom-2 w-px bg-[#1e1e1e]" />
-
-            <div className="space-y-1">
-              {honourLogs.map((log, i) => {
-                const isPos = log.change > 0
-                return (
-                  <div key={log._id} className={`relative flex items-start gap-4 py-3 px-3 rounded-xl transition-colors
-                    ${i % 2 === 0 ? 'hover:bg-[#0e0e0e]' : 'hover:bg-[#0e0e0e]'}`}>
-
-                    {/* Timeline dot */}
-                    <div className={`relative z-10 w-10 h-10 rounded-xl border flex flex-col items-center justify-center shrink-0 font-black text-sm
-                      ${isPos
-                        ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400'
-                        : 'bg-red-500/10 border-red-500/20 text-red-400'}`}>
-                      {isPos ? '+' : ''}{log.change}
-                    </div>
-
-                    {/* Content */}
-                    <div className="flex-1 min-w-0 pt-0.5">
-                      <div className="text-sm text-[#e0e0e0] font-medium leading-tight">{log.reason}</div>
-                      <div className="text-xs text-[#4a4a4a] mt-0.5">{formatDate(log.createdAt)}</div>
-                    </div>
-
-                    {/* New score badge */}
-                    <div className={`shrink-0 text-xs font-bold px-2.5 py-1 rounded-lg border
-                      ${isPos
-                        ? 'bg-emerald-500/8 border-emerald-500/15 text-emerald-400'
-                        : 'bg-red-500/8 border-red-500/15 text-red-400'}`}>
-                      {log.newScore}/100
-                    </div>
+          <div className="space-y-2">
+            {honourLogs.map(log => (
+              <div key={log._id} className="flex items-center justify-between py-2.5 border-b border-[#1e1e1e] last:border-0">
+                <div className="flex items-center gap-3">
+                  <span className={`text-sm font-bold w-10 text-right ${log.change > 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                    {log.change > 0 ? '+' : ''}{log.change}
+                  </span>
+                  <div>
+                    <div className="text-sm text-[#a3a3a3]">{log.reason}</div>
+                    <div className="text-xs text-[#4a4a4a]">{formatDate(log.createdAt)}</div>
                   </div>
-                )
-              })}
-            </div>
+                </div>
+                <span className="text-xs text-[#6b6b6b] font-mono">{log.newScore}/100</span>
+              </div>
+            ))}
           </div>
         )}
       </div>
@@ -916,6 +800,7 @@ export default function EmployerDashboard() {
         <Route path="history" element={<JobHistory />} />
         <Route path="profile" element={<EmployerProfile />} />
         <Route path="notifications" element={<Notifications />} />
+        <Route path="disputes" element={<DisputeCenter />} />
       </Routes>
     </DashboardLayout>
   )

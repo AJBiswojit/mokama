@@ -108,7 +108,14 @@ exports.raiseDispute = async (req, res) => {
     if (!isWorker && !isEmployer)
       return res.status(403).json({ success: false, message: 'Not a party to this job' });
 
-    const allowedStatuses = [JOB_STATUS.ACTIVE, JOB_STATUS.WORK_DONE, 'PAYMENT_PENDING', 'WORK_IN_PROGRESS'];
+    const allowedStatuses = [
+      JOB_STATUS.ACTIVE,
+      JOB_STATUS.WORK_DONE,
+      'ACTIVE',
+      'WORK_IN_PROGRESS',   // legacy value — backward compat
+      'PAYMENT_PENDING',
+      'ARRIVED',
+    ];
     if (!allowedStatuses.includes(job.status))
       return res.status(400).json({ success: false, message: `Cannot dispute a job with status: ${job.status}` });
 

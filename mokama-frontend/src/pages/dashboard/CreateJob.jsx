@@ -132,6 +132,7 @@ export default function CreateJob() {
     // Step 2
     state:    '', district: '', block: '',
     address:  '', landmark: '', pincode: '',
+    jobSiteLat: null, jobSiteLng: null,
     // Step 3
     jobType:      'per_day',
     startDate:    '',
@@ -388,6 +389,38 @@ export default function CreateJob() {
             onChange={e => set('pincode', e.target.value.replace(/\D/g, ''))}
           />
         </div>
+      </div>
+
+      {/* Job site GPS — used for anti-fraud geofence validation */}
+      <div className="p-4 rounded-xl bg-[#0a0a0a] border border-[#1a1a1a]">
+        <div className="flex items-center justify-between mb-2">
+          <div>
+            <div className="text-xs font-semibold text-white">Job Site GPS <span className="text-[#333] font-normal">(optional but recommended)</span></div>
+            <div className="text-xs text-[#3a3a3a] mt-0.5">Used to verify worker arrival is genuine</div>
+          </div>
+          <button type="button"
+            className="btn-ghost text-xs py-1.5 px-3"
+            onClick={async () => {
+              if (!navigator.geolocation) return toast.error('GPS not available on this device')
+              navigator.geolocation.getCurrentPosition(
+                pos => { set('jobSiteLat', pos.coords.latitude); set('jobSiteLng', pos.coords.longitude); toast.success('Location captured!') },
+                ()  => toast.error('Could not get location'),
+                { timeout: 8000, enableHighAccuracy: true }
+              )
+            }}>
+            📍 Use My Location
+          </button>
+        </div>
+        {form.jobSiteLat && (
+          <div className="text-xs text-emerald-400 flex items-center gap-1.5 mt-1">
+            <span>✅</span>
+            <span>GPS set: {form.jobSiteLat?.toFixed(5)}, {form.jobSiteLng?.toFixed(5)}</span>
+            <button type="button" className="text-[#333] hover:text-[#555] ml-1"
+              onClick={() => { set('jobSiteLat', null); set('jobSiteLng', null) }}>
+              ✕ Clear
+            </button>
+          </div>
+        )}
       </div>
     </div>
   )

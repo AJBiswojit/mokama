@@ -34,6 +34,7 @@ const workerRoutes       = require('./routes/worker');
 const employerRoutes     = require('./routes/employer');
 const jobRoutes          = require('./routes/job');
 const adminRoutes        = require('./routes/admin');
+const disputeRoutes      = require('./routes/dispute');
 const notificationRoutes = require('./routes/notification');
 const geoRoutes          = require('./routes/geo');
 
@@ -83,6 +84,7 @@ app.use('/api/worker',        workerRoutes);
 app.use('/api/employer',      employerRoutes);
 app.use('/api/jobs',          jobRoutes);
 app.use('/api/admin',         adminRoutes);
+app.use('/api/disputes',      disputeRoutes)
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/geo',          geoRoutes);
 
